@@ -225,4 +225,5 @@ __marimo__/
 # re-running src/ingest_paper.py against the DOI in each manifest.
 data/papers/*/raw/
 data/papers/*/crops/
+data/papers/*/spectra/*_overlay.png
 data/raw_papers/

@@ -96,11 +96,40 @@ RECORD_SCHEMA = {
         "source_name", "extraction_method", "curator",
         # --- SpectraScribe-specific, mandatory (see docs/SOURCE_POLICY.md) ---
         "doi", "source_location", "license",
+        # --- SpectraScribe-specific, mandatory (Phase 3 addition) ---
+        "material_description", "measurement_purpose",
     ],
     "properties": {
         # --- Core fields, identical meaning to SpectraVault's schema.py ---
         "record_id": {"type": "string"},
         "material_formula": {"type": "string"},
+        # material_formula alone (e.g. "TiO2/Cu2O") is not enough to tell
+        # two samples in the same paper apart -- this project's own test
+        # paper has TiO2/Cu2O coatings made with 10, 30, and 60 minute
+        # reaction times, and separate SI figures for each. A curve
+        # digitized under just "TiO2/Cu2O" is ambiguous the moment a
+        # second paper (or a second figure in the SAME paper) reports a
+        # different-process sample with the identical formula.
+        # material_description carries whatever process detail the paper
+        # itself uses to distinguish samples -- e.g. "TiO2/Cu2O coating,
+        # 60 min reaction time, silicon substrate" -- in the paper's own
+        # words, not reformatted.
+        "material_description": {"type": "string"},
+        # What this specific measurement is being COMPARED against, if
+        # anything -- e.g. a Raman spectrum of a TiO2/Cu2O sample is
+        # meaningless on its own for ruling out substrate artifacts
+        # without knowing "compared against a bare-glass-substrate Raman
+        # spectrum" is the baseline. Required to be an explicit key (see
+        # validate_record()) even when null, so "no clear baseline for
+        # this spectrum" is a stated decision, not an omission nobody
+        # checked.
+        "baseline_material": {"type": ["string", "null"]},
+        # Why the paper made this measurement at all -- e.g. "confirm
+        # Cu(I) oxidation state via XPS binding energy" or "monitor
+        # methyl orange dye concentration during the photocatalysis
+        # test." Without this, a digitized curve is numbers with no
+        # stated reason to trust what question they were meant to answer.
+        "measurement_purpose": {"type": "string"},
         "modality": {"enum": [m.value for m in Modality]},
         "edge": {"type": ["string", "null"]},
         "absorbing_element": {"type": ["string", "null"]},
@@ -348,6 +377,20 @@ def validate_record(record: dict) -> list:
     # figure/table in a specific paper, not just "cited somewhere."
     if record.get("doi") and not record.get("source_location"):
         problems.append("record has a doi but no source_location (e.g. 'Figure 3b') -- not independently checkable")
+
+    # baseline_material is intentionally NOT in RECORD_SCHEMA["required"]
+    # (its correct value is often legitimately null -- not every spectrum
+    # is comparative), but the KEY must always be present. Checked
+    # separately from the required-fields loop above, which treats a
+    # None value as "missing" -- here None is a valid, meaningful answer
+    # ("no baseline for this spectrum"), but an absent key means nobody
+    # made that call at all.
+    if "baseline_material" not in record:
+        problems.append(
+            "record has no 'baseline_material' key -- set it to the comparison "
+            "sample/spectrum if this measurement is comparative (e.g. a bare-substrate "
+            "blank), or explicitly null if it isn't. Don't omit the key."
+        )
 
     x_vals, y_vals = record.get("x_values"), record.get("y_values")
     if isinstance(x_vals, list) and isinstance(y_vals, list) and len(x_vals) != len(y_vals):
