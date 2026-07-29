@@ -1,0 +1,391 @@
+{
+  "paper_id": "acsomega_5c08505",
+  "doi": "10.1021/acsomega.5c08505",
+  "license": "CC-BY 4.0 (ACS Omega)",
+  "documents": {
+    "main": {
+      "pdf_path": "../data/papers/acsomega_5c08505/raw/ao5c08505.pdf",
+      "n_pages": 10,
+      "doi_source": "provided"
+    },
+    "si": {
+      "pdf_path": "../data/papers/acsomega_5c08505/raw/ao5c08505_si_001.pdf",
+      "n_pages": 11,
+      "doi_source": "provided"
+    }
+  },
+  "n_regions_detected": 23,
+  "n_figures": 21,
+  "n_tables": 2,
+  "n_low_confidence_regions": 0,
+  "regions": [
+    {
+      "kind": "figure",
+      "label": "Figure 1",
+      "caption": "Figure 1. Schematic illustration of the photocatalysis process of a\nTiO2/Cu2O heterojunction.",
+      "page_number": 2,
+      "region_bbox": [
+        52.44089889526367,
+        115.93699645996094,
+        290.4949035644531,
+        270.10601806640625
+      ],
+      "region_height_pts": 154.1690216064453,
+      "low_confidence": false,
+      "doc_type": "main",
+      "crop_path": "../data/papers/acsomega_5c08505/crops/main_page002_Figure_1.png"
+    },
+    {
+      "kind": "figure",
+      "label": "Figure 2",
+      "caption": "Figure 2. Schematic illustration of the preparation of the TiO2/Cu2O samples (the photo shows a TiO2/Cu2O coating prepared with a 60 min\nreaction time). film optical model of the Hild-method.35\u221237 Spectroscopic\nellipsometry was used to characterize the TiO2/Cu2O coatings\nmade with a 60 min reaction time, using a Semilab SE-2000\nellipsometer, in the wavelength range of 250\u2212975 nm, with three\ndifferent angles of incidence values (65\u00b0, 70\u00b0, 75\u00b0). The spectra were\nanalyzed using the Spectroscopic Ellipsometry Analyzer software; the\neffective refractive index, layer thickness, and band gap energy values\nwere determined using Sellmeier and Tauc\u2212Lorentz models.38,39 used in this work) showed that the mesoporous structure (average\npore diameter: 9 nm) of the TiO2 coating results in a high specific\nsurface area (\u223c1100 m2 cm\u22123), which leads to efficient photo-\ndegradation of dye molecules under UV irradiation. The TiO2 layer is\nbuilt up of \u223c10 nm sized TiO2 particles (the particle sizes change\nbetween 6 and 15 nm) with air-filled voids between them. Glass and Si substrates were first cleaned by a detergent solution\nand then by 10 w/w % H2SO4 solution, 2-PrOH, and distilled water.\nCoating deposition from the precursor sols was carried out using a\ndip-coater (Plo\u0301sz Me\u0301rno\u0308kiroda Kft., Hungary), at 25 \u00b0C, with a 6 cm\nmin\u22121 withdrawal speed for the silica and 12 cm min\u22121 for the TiO2\ncoatings. The coatings were dried in air and then placed in an oven\n(Nabertherm B170) for heat treatment: compact silica barrier layers\nwere treated at 450 \u00b0C for 30 min, while porous silica and TiO2\ncoatings were treated at 480 \u00b0C for 1 h. Porosity values were estimated based on the refractive indices using\nthe Lorentz\u2212Lorenz equation.40 The crystal structure of the Cu2O nanoparticles was measured on\npowder samples by X-ray diffraction (XRD), using a Philips\nPANalytical X\u2019pert Pro device with Cu\u2212K\u03b1 radiation, measured in\nthe range of 2\u03b8 = 4\u221284\u00b0, with a 0.0167\u00b0 step size and a 5 s scanning\nspeed. The powder samples were prepared by first synthesizing the\nCu2O particles following the same steps as above, only without\nimmersing a TiO2 coating into the reaction mixture: after 60 min, the\nparticles were separated by centrifugation (5000 rpm, 10 min, using a\nHermle Z 36 K centrifuge), followed by consecutive washing steps\n(two times in water, one time with ethanol, always using 5000 rpm, 10\nmin centrifugation for separating the dry matter from the dispersion\nphase). Then, the particles were dried at 80 \u00b0C for 60 min, resulting in\nan orange-colored powder sample. The crystallite size of the Cu2O\nnanoparticles was calculated by the Scherrer equation,41 from the\nhighest intensity peak observed on the XRD pattern (2\u03b8 = 36.68\u00b0,\ncorresponding to the (111) crystal plane). The TiO2/Cu2O\ncomposite coatings were also measured, using the grazing angle\nmode, suitable for investigating very thin coatings, with a measure-\nment range of 2\u03b8 = 25\u221250\u00b0, a step size of 0.0167\u00b0, and a scanning\nspeed of 30 s. Cu2O nanoparticles were synthesized and deposited onto the TiO2\nsurface using a simple, one-step deposition method (see Figure 2):\nthe TiO2 coating was immersed in the reaction mixture and Cu2O\nparticles formed on the surface in a heterogeneous nucleation process.\nThe Cu2O particles were synthesized using the following steps: 10 mL\ncopper(II) acetate solution (0.1 M) and 40 mL ascorbic acid solution\n(0.1 M) were prepared and mixed at 35 \u00b0C and pH = 11 (pH was set\nby adding 2 M NaOH solution), which resulted in the formation of an\norange-colored suspension of Cu2O nanoparticles. The reaction time\nwas changed between 1, 10, 30, and 60 min during the TiO2/Cu2O\nsample preparation. The samples made with different reaction times\nshowed different colors (for a detailed schematic of the sample\npreparation and for photos of the samples; see Figure S1). Reference\nsamples of Cu2O particles deposited onto mesoporous silica coatings\nwere prepared using the same steps. 2.3. Characterization Methods Composition and structure of the TiO2 and TiO2/Cu2O coatings\nwere further confirmed by Raman spectroscopy, using a Horiba Jobin\nYvon LabRam 300 spectrometer equipped with a frequency-doubled\nNd/YAG laser (532 nm), a Synapse Plus InGaAs detector, and an\nobjective of 100\u00d7 magnification. Optical properties of the coatings were characterized by UV\u2212vis\nspectroscopy method, using an Analytic Jena Specord 200\u22120318\nspectrophotometer: transmittance and absorbance spectra were\nmeasured in the wavelength range of 350\u22121100 nm, with a scanning\nspeed of 10 nm s\u22121 and a slit width of 1 nm. The effective refractive\nindex (at 632.8 nm) and layer thickness values of the silica and TiO2\ncoatings were determined from the transmittance data using the thin X-ray photoelectron spectroscopy (XPS) measurements were\ncarried out on a TiO2/Cu2O sample (prepared with a 60 min\nreaction time on silicon substrate) by a Thermo Scientific ESCALAB",
+      "page_number": 3,
+      "region_bbox": [
+        129.08999633789062,
+        60.43499755859375,
+        477.8079833984375,
+        340.57501220703125
+      ],
+      "region_height_pts": 280.1400146484375,
+      "low_confidence": false,
+      "doc_type": "main",
+      "crop_path": "../data/papers/acsomega_5c08505/crops/main_page003_Figure_2.png"
+    },
+    {
+      "kind": "figure",
+      "label": "Figure 3",
+      "caption": "Figure 3. XRD and Raman results: XRD patterns of the powder sample (prepared in a homogeneous synthesis with a 60 min reaction time) (a)\nand the TiO2/Cu2O composite coating (prepared with a 60 min reaction time; measured using grazing angle mode) (b). Raman spectra of the\nTiO2 coating (c) and the TiO2/Cu2O coating (prepared with a 60 min reaction time) (d). nm s\u22121 scanning speed, 1 nm slit width) were taken in the beginning\nand after each hour of the measurement, using an optical glass cuvette\nand distilled water as reference. The solutions were stirred during the\nprocess, and the system was cooled by a water bath and ventilation to\nprevent heating by the high-intensity lamps. The irradiation sources\n(Life Light LED, 48 W, E27 type halogen lamp) with emission\nwavelengths between 400 and 750 nm and emission maximum at 595\nnm was used for visible light; Phillips CLEO UV-A HPA 400 S, 400\nW lamp with emission maximum at 365 nm was used for UV\nirradiation) were kept with their longitudinal axes perpendicular to\nthe samples with a fixed 15 and 30 cm source\u2212sample distance and\npower density of 4.37 mW cm\u22122 and 47.1 mW cm\u22122 (measured at\nsaid distances) for vis and UV irradiation, respectively. Xi + instrument, with an Al K\u03b1 X-ray source (\u03bb = 0.8340 nm, 1486.6\neV), an X-ray spot size of 900 \u03bcm, and using cluster argon ion\nsputtering. Survey spectra were measured in steps of 0.5 eV with a 10\nms dwell time per data point. Silicon (2p), carbon (1s), copper\n(LMM), copper (2p), titanium (2p), oxygen (1s), sulfur (2p), and\nnitrogen (1s) high-resolution spectra were measured within the\nspectral range of interest (ca. 20 eV around the core level emission\npeaks) at 20 eV pass energies with 0.1 eV steps and a 50 ms dwell\ntime per data point. The shape and sizes of Cu2O particles and the structure of the\ncoated samples were characterized by field emission scanning electron\nmicroscopy (FE-SEM), measured on TiO2/Cu2O coatings deposited\nonto Si substrates (prepared using the same steps and parameters as\ndescribed above), using a Zeiss Leo 1540XB FE-SEM device operated\nat a 5 kV acceleration voltage and utilizing an Oxford Instruments\nUltimMax 40 detector for recording elemental maps with energy-\ndispersive X-ray spectroscopy (EDS). 3. RESULTS AND DISCUSSION 3.1. Structural and Optical Properties of the TiO2/Cu2O\nCoatings\nFigure 3a shows the XRD pattern measured on the powder\nsample of the Cu2O nanoparticles. The detected peaks belong\nto the cubic structure characteristic of Cu2O crystals (JCPDS\n05-0667), while there is an additional very small peak at 52.6\u00b0,\nwhich most likely belongs to a pollutant. The average\ncrystallite size was determined to be 21 nm, based on the\nhighest intensity peak (111), using Scherrer\u2019s equation.41 The single-layer formation and the surface coverage of the TiO2/\nCu2O composite samples were characterized by atomic force\nmicroscopy (AFM), measured on TiO2/Cu2O coatings deposited\nonto Si substrates (prepared with a 60 min reaction time) by an AFM\ndevice (AIST-NT SmartSPM 1000) in tapping mode with a PPP-\nNCHR20 needle (NanoSensors, nominal radius of the needle <20\nnm). The evaluation was performed using Gwyddion software. The photoactivity of the samples was investigated with dye\nphotodegradation tests under UV and visible light, using methyl\norange dye as a model pollutant. The coatings were placed into a\ncrystallizing dish filled with a 25 mL 10\u22125 M aqueous dye solution.\nH2O2 cocatalyst (125 \u03bcL, 30% aqueous solution) was added for the\nvisible light tests: the cocatalyst increases the rate of the degradation\nand decreases the required time of the measurements.42 In the first\nstep, the samples were kept in darkness for 1 h (adsorption\nequilibrium was reached), and then they were irradiated by UV or\nvisible light for 3 h. Absorbance spectra between 350 and 600 nm (10 Figure 3b shows the XRD pattern of the TiO2/Cu2O coatings:\ndue to the very thin layer of nanoparticles deposited onto the\ntitania surface during a heterogeneous nucleation process, the\ngrazing angle measurement mode was necessary to achieve\nobservable peaks. Two broad peaks can be seen on the pattern\nat 36.7\u00b0 and 42.5\u00b0, in agreement with the highest intensity\n(111) and (200) peaks observed on the XRD pattern of the\npowder samples, which suggests that the particles synthesized",
+      "page_number": 4,
+      "region_bbox": [
+        104.25800323486328,
+        60.435028076171875,
+        502.6390075683594,
+        369.375
+      ],
+      "region_height_pts": 308.9399719238281,
+      "low_confidence": false,
+      "doc_type": "main",
+      "crop_path": "../data/papers/acsomega_5c08505/crops/main_page004_Figure_3.png"
+    },
+    {
+      "kind": "figure",
+      "label": "Figure 4",
+      "caption": "Figure 4. FE-SEM images (a\u2212c), size distribution diagram of Cu2O particles (d); chosen SEM image (e) and its elemental map determined by\nEDS (f) of TiO2/Cu2O coatings (prepared with a 60 min reaction time). Average Cu2O particle sizes were calculated from diameter values of 200\nparticles measured on the micrographs.",
+      "page_number": 5,
+      "region_bbox": [
+        149.04600524902344,
+        60.43499755859375,
+        457.90899658203125,
+        383.864013671875
+      ],
+      "region_height_pts": 323.42901611328125,
+      "low_confidence": false,
+      "doc_type": "main",
+      "crop_path": "../data/papers/acsomega_5c08505/crops/main_page005_Figure_4.png"
+    },
+    {
+      "kind": "figure",
+      "label": "Figure 5",
+      "caption": "Figure 5. 2D (a) and 3D (b) AFM images of TiO2/Cu2O coatings (prepared with a 60 min reaction time) on a 9 \u00d7 9 \u03bcm scan area.",
+      "page_number": 6,
+      "region_bbox": [
+        94.2802963256836,
+        60.43500518798828,
+        512.560302734375,
+        187.0830078125
+      ],
+      "region_height_pts": 126.64800262451172,
+      "low_confidence": false,
+      "doc_type": "main",
+      "crop_path": "../data/papers/acsomega_5c08505/crops/main_page006_Figure_5.png"
+    },
+    {
+      "kind": "figure",
+      "label": "Figure 6",
+      "caption": "Figure 6. Transmittance spectra of coatings before and after Cu2O\nparticle deposition.",
+      "page_number": 6,
+      "region_bbox": [
+        71.82990264892578,
+        341.2909851074219,
+        270.9919128417969,
+        510.82403564453125
+      ],
+      "region_height_pts": 169.53305053710938,
+      "low_confidence": false,
+      "doc_type": "main",
+      "crop_path": "../data/papers/acsomega_5c08505/crops/main_page006_Figure_6.png"
+    },
+    {
+      "kind": "figure",
+      "label": "Figure 7",
+      "caption": "Figure 7. Photocatalytic activity of the TiO2/Cu2O samples in methyl orange dye solution under (a) UV and (b) visible light irradiation.",
+      "page_number": 6,
+      "region_bbox": [
+        129.08999633789062,
+        606.0474853515625,
+        477.8079833984375,
+        745.8731079101562
+      ],
+      "region_height_pts": 139.82562255859375,
+      "low_confidence": false,
+      "doc_type": "main",
+      "crop_path": "../data/papers/acsomega_5c08505/crops/main_page006_Figure_7.png"
+    },
+    {
+      "kind": "figure",
+      "label": "Figure S1",
+      "caption": "Figure S1. Sample preparation: Experimental steps of silica and TiO2 precursor sol synthesis; preparation of the Cu2O sol; and photos of the TiO2/Cu2O coating samples prepared with 10 min (left) and 60 min (right) immersion time",
+      "page_number": 2,
+      "region_bbox": [
+        71.05000305175781,
+        140.77996826171875,
+        540.9500122070312,
+        557.2333984375
+      ],
+      "region_height_pts": 416.45343017578125,
+      "low_confidence": false,
+      "doc_type": "si",
+      "crop_path": "../data/papers/acsomega_5c08505/crops/si_page002_Figure_S1.png"
+    },
+    {
+      "kind": "figure",
+      "label": "Figure S2",
+      "caption": "Figure S2. Raman spectrum of glass substrate",
+      "page_number": 3,
+      "region_bbox": [
+        180.0,
+        92.5,
+        431.94000244140625,
+        295.13336181640625
+      ],
+      "region_height_pts": 202.63336181640625,
+      "low_confidence": false,
+      "doc_type": "si",
+      "crop_path": "../data/papers/acsomega_5c08505/crops/si_page003_Figure_S2.png"
+    },
+    {
+      "kind": "figure",
+      "label": "Figure S3",
+      "caption": "Figure S3. Raman spectrum of TiO2/Cu2O sample prepared on glass substrate with 30 min reaction time",
+      "page_number": 3,
+      "region_bbox": [
+        180.0,
+        365.60003662109375,
+        431.75,
+        567.5533447265625
+      ],
+      "region_height_pts": 201.95330810546875,
+      "low_confidence": false,
+      "doc_type": "si",
+      "crop_path": "../data/papers/acsomega_5c08505/crops/si_page003_Figure_S3.png"
+    },
+    {
+      "kind": "figure",
+      "label": "Figure S4",
+      "caption": "Figure S4. XPS spectrum of TiO2/Cu2O coating (prepared with 60 min reaction time on silicon substrate) The atomic composition of the sample was determined to be 37.8% C 1s, 23.8% Cu 2p, 30.2% O 1s, 0.9% \nTi 2p, 4.0% S 2p and 3.3% N 1s. There was no detectable amount of Si 2p. The high-resolution spectrum \nof the Cu 2p showed two peaks at 952.6 \u00b1 0.1 eV and 932.5 \u00b1 0.1 eV, which corresponds to Cu 2p 1/2 and \nCu 2p 3/2, respectively. The main component at 932.5 \u00b1 0.1 eV is characteristic for Cu (I) oxide and Cu \n(0) [Biesinger, M. C. et al (2017) 10.1002/sia.6239]. For identifying this chemical state, the Cu L3M4,5M4,5 \nAuger peak and the modified Auger parameter were used. The calculated Auger parameter value was \nfound to be 1849.1 \u00b1 0.1 eV, which is characteristic for Cu (I) oxide, indicating that metallic copper is not \npresent in the sample. \nThe Cu 2p XPS and Cu L3M4,5M4,5 Auger spectra can be seen on Figure S5.",
+      "page_number": 4,
+      "region_bbox": [
+        0,
+        255.004638671875,
+        612.0,
+        488.953369140625
+      ],
+      "region_height_pts": 233.94873046875,
+      "low_confidence": false,
+      "doc_type": "si",
+      "crop_path": "../data/papers/acsomega_5c08505/crops/si_page004_Figure_S4.png"
+    },
+    {
+      "kind": "figure",
+      "label": "Figure S5",
+      "caption": "Figure S5. Cu 2p XPS spectrum (a) and Cu L3M4,5M4,5 Auger spectrum (b) of TiO2/Cu2O coating (prepared with 60 min reaction time on silicon substrate)",
+      "page_number": 5,
+      "region_bbox": [
+        70.8499984741211,
+        70.11001586914062,
+        541.1499633789062,
+        268.8533630371094
+      ],
+      "region_height_pts": 198.74334716796875,
+      "low_confidence": false,
+      "doc_type": "si",
+      "crop_path": "../data/papers/acsomega_5c08505/crops/si_page005_Figure_S5.png"
+    },
+    {
+      "kind": "figure",
+      "label": "Figure S6",
+      "caption": "Figure S6. Additional FE-SEM images (a-b) of TiO2/Cu2O coatings (prepared with 60 min reaction time)",
+      "page_number": 5,
+      "region_bbox": [
+        79.25,
+        425.9100341796875,
+        532.7099609375,
+        594.67333984375
+      ],
+      "region_height_pts": 168.7633056640625,
+      "low_confidence": false,
+      "doc_type": "si",
+      "crop_path": "../data/papers/acsomega_5c08505/crops/si_page005_Figure_S6.png"
+    },
+    {
+      "kind": "figure",
+      "label": "Figure S7",
+      "caption": "Figure S7. Elemental maps of copper (a), oxygen (b), titanium (c), silicon (d) and carbon (e) elements of TiO2/Cu2O sample (prepared with 60 min reaction time on silicon substrate)",
+      "page_number": 6,
+      "region_bbox": [
+        116.25,
+        70.1099853515625,
+        495.25,
+        270.7733459472656
+      ],
+      "region_height_pts": 200.66336059570312,
+      "low_confidence": false,
+      "doc_type": "si",
+      "crop_path": "../data/papers/acsomega_5c08505/crops/si_page006_Figure_S7.png"
+    },
+    {
+      "kind": "figure",
+      "label": "Figure S8",
+      "caption": "Figure S8. Additional AFM image (left) and a corresponding cross-section diagram (right) of TiO2/Cu2O coatings (prepared with 60 min reaction time)",
+      "page_number": 6,
+      "region_bbox": [
+        79.25,
+        392.5099792480469,
+        277.6400146484375,
+        570.3133544921875
+      ],
+      "region_height_pts": 177.80337524414062,
+      "low_confidence": false,
+      "doc_type": "si",
+      "crop_path": "../data/papers/acsomega_5c08505/crops/si_page006_Figure_S8.png"
+    },
+    {
+      "kind": "table",
+      "label": "Table S1",
+      "caption": "Table S1: Effective refractive index, layer thickness and porosity values of the mesoporous TiO2 coatings, the compact silica barrier layers and the mesoporous silica reference coatings.",
+      "page_number": 7,
+      "region_bbox": [
+        0,
+        140.1646728515625,
+        612.0,
+        286.13336181640625
+      ],
+      "region_height_pts": 145.96868896484375,
+      "low_confidence": false,
+      "doc_type": "si",
+      "crop_path": "../data/papers/acsomega_5c08505/crops/si_page007_Table_S1.png"
+    },
+    {
+      "kind": "figure",
+      "label": "Figure S9",
+      "caption": "Figure S9. The three layers used in the model for analysis of the coating made of Cu2O nanoparticles",
+      "page_number": 7,
+      "region_bbox": [
+        96.67500305175781,
+        403.2099914550781,
+        515.2349853515625,
+        490.51336669921875
+      ],
+      "region_height_pts": 87.30337524414062,
+      "low_confidence": false,
+      "doc_type": "si",
+      "crop_path": "../data/papers/acsomega_5c08505/crops/si_page007_Figure_S9.png"
+    },
+    {
+      "kind": "table",
+      "label": "Table S2",
+      "caption": "Table S2: Effective refractive index, layer thickness and porosity values of the compact silica barrier layer, the mesoporous TiO2 coating and the 3 layers of the Cu2O coating.",
+      "page_number": 7,
+      "region_bbox": [
+        0,
+        560.4133911132812,
+        612.0,
+        792.0
+      ],
+      "region_height_pts": 231.58660888671875,
+      "low_confidence": false,
+      "doc_type": "si",
+      "crop_path": "../data/papers/acsomega_5c08505/crops/si_page007_Table_S2.png"
+    },
+    {
+      "kind": "figure",
+      "label": "Figure S10",
+      "caption": "Figure S10. Tauc plots of the TiO2 coating (a) and the TiO2/Cu2O composite coating (b)",
+      "page_number": 8,
+      "region_bbox": [
+        0,
+        0,
+        612.0,
+        273.4887390136719
+      ],
+      "region_height_pts": 273.4887390136719,
+      "low_confidence": false,
+      "doc_type": "si",
+      "crop_path": "../data/papers/acsomega_5c08505/crops/si_page008_Figure_S10.png"
+    },
+    {
+      "kind": "figure",
+      "label": "Figure S11",
+      "caption": "Figure S11. The change of the methyl orange dye solution\u2019s absorption spectra during the adsorption step",
+      "page_number": 8,
+      "region_bbox": [
+        157.1300048828125,
+        457.9999694824219,
+        454.8699951171875,
+        695.2593994140625
+      ],
+      "region_height_pts": 237.25942993164062,
+      "low_confidence": false,
+      "doc_type": "si",
+      "crop_path": "../data/papers/acsomega_5c08505/crops/si_page008_Figure_S11.png"
+    },
+    {
+      "kind": "figure",
+      "label": "Figure S12",
+      "caption": "Figure S12. Absorbance spectra of the methyl orange dye solution during the photocatalysis test",
+      "page_number": 9,
+      "region_bbox": [
+        155.6300048828125,
+        92.5,
+        456.3800048828125,
+        331.8533630371094
+      ],
+      "region_height_pts": 239.35336303710938,
+      "low_confidence": false,
+      "doc_type": "si",
+      "crop_path": "../data/papers/acsomega_5c08505/crops/si_page009_Figure_S12.png"
+    },
+    {
+      "kind": "figure",
+      "label": "Figure S13",
+      "caption": "Figure S13. Transmittance spectra of the TiO2/Cu2O sample (prepared with 60 min reaction time) before and after the photocatalysis test was carried out",
+      "page_number": 9,
+      "region_bbox": [
+        155.25,
+        388.5999755859375,
+        456.7200012207031,
+        628.9033203125
+      ],
+      "region_height_pts": 240.3033447265625,
+      "low_confidence": false,
+      "doc_type": "si",
+      "crop_path": "../data/papers/acsomega_5c08505/crops/si_page009_Figure_S13.png"
+    },
+    {
+      "kind": "figure",
+      "label": "Figure S14",
+      "caption": "Figure S14. The results of photodegradation tests of the TiO2/Cu2O samples in methyl orange dye solution under visible light irradiation carried out within 1 month of preparing the samples (a), and repeated on the same samples after 4 years of storage (b).",
+      "page_number": 10,
+      "region_bbox": [
+        70.8499984741211,
+        187.41998291015625,
+        525.3399658203125,
+        575.1134033203125
+      ],
+      "region_height_pts": 387.69342041015625,
+      "low_confidence": false,
+      "doc_type": "si",
+      "crop_path": "../data/papers/acsomega_5c08505/crops/si_page010_Figure_S14.png"
+    }
+  ]
+}

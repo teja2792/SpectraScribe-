@@ -216,3 +216,13 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# --- SpectraScribe data ---
+# Per docs/SOURCE_POLICY.md section 3, this project does not redistribute
+# source PDFs or the cropped figure/table images extracted from them —
+# only the numeric data and citation metadata derived from them. Raw PDFs
+# and crops are working files, not repo content, and are regenerable by
+# re-running src/ingest_paper.py against the DOI in each manifest.
+data/papers/*/raw/
+data/papers/*/crops/
+data/raw_papers/
