@@ -16,8 +16,21 @@ data/papers/<paper_id>/
         si_page002_Figure_S1.png
         si_page007_Table_S1.png
         ...
+    tables/
+        Table_S1.json
+        Table_S2.json
     manifest.json
 ```
+
+`manifest.json` also carries a top-level `citation_metadata` object once
+`fetch_metadata.py` has run (title, authors, journal, year, a formatted
+citation string, and a `metadata_reviewed` boolean checkpoint -- see that
+script's docstring). `tables/<label>.json` files are produced by
+`extract_table.py` and validated against `schema.py`'s
+`TABLE_RECORD_SCHEMA` -- a deliberately separate, simpler schema from the
+spectral-curve `RECORD_SCHEMA`, since a property table (refractive index,
+thickness, porosity...) isn't spectral data and shouldn't be forced into
+an x_values/y_values shape to pretend it is.
 
 `<paper_id>` is derived from the DOI by `paper_id_from_doi()` in `src/ingest_paper.py`
 (registrant prefix stripped, suffix sanitized to a folder-safe string — e.g.

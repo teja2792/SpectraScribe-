@@ -221,6 +221,98 @@ def dump_record(record: dict, path) -> None:
         f.write(text)
 
 
+TABLE_RECORD_SCHEMA = {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "SpectraScribe Table Record",
+    "type": "object",
+    "required": [
+        "record_id", "doi", "source_location", "license", "citation",
+        "source_type", "extraction_method", "curator", "retrieved_at_utc",
+        "table_title", "columns", "rows",
+    ],
+    "properties": {
+        "record_id": {"type": "string"},
+        "doi": {"type": "string"},
+        "source_location": {"type": "string"},  # e.g. "Table S1"
+        "license": {"type": "string"},
+        "citation": {"type": "string"},
+        "table_title": {"type": "string"},  # the table's own caption text
+        "columns": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "required": ["name", "unit"],
+                "properties": {"name": {"type": "string"}, "unit": {"type": ["string", "null"]}},
+            },
+        },
+        # Each row is {column_name: value}, where value is either a plain
+        # number/string, or {"value": number, "uncertainty": number} when
+        # the source table reports a +/- (e.g. "122 +/- 2"), or null when
+        # the source table has no entry for that cell (e.g. "-").
+        "rows": {"type": "array", "items": {"type": "object"}},
+        "source_type": {"enum": [s.value for s in SourceType]},
+        "extraction_method": {"enum": [e.value for e in ExtractionMethod]},
+        "review_status": {"enum": [r.value for r in ReviewStatus]},
+        "curator": {"type": "string"},
+        "retrieved_at_utc": {"type": "string", "format": "date-time"},
+        "peer_reviewed": {"type": ["boolean", "null"]},
+        "open_access": {"type": ["boolean", "null"]},
+        "cross_validated": {"type": "boolean"},
+        "confidence_score": {"type": ["number", "null"]},
+        "confidence_breakdown": {"type": "object"},
+        "notes": {"type": "string"},
+    },
+}
+# Deliberately NOT claimed as SpectraVault-compatible, unlike RECORD_SCHEMA
+# above -- SpectraVault's own schema has no concept of a generic property
+# table (it's built entirely around x_values/y_values spectral curves), so
+# there is nothing on the other side of the repo boundary for this shape
+# of record to be compatible WITH. Table records are SpectraScribe-only
+# for now; if/when Phase 5 (SpectraVault handoff) needs to carry table
+# data across, that's a real design question to solve then, not something
+# to paper over now by forcing a table into the spectral record shape.
+# compute_confidence_score() and its five inputs (source_type,
+# extraction_method, peer_reviewed, open_access, cross_validated) are
+# reused as-is -- none of those five are curve-shape-specific, so the same
+# rubric means the same thing for a table record as for a spectral one.
+
+
+def validate_table_record(record: dict) -> list:
+    """Same pattern as validate_record(), for TABLE_RECORD_SCHEMA. Checks
+    structural shape (every row only uses declared column names) in
+    addition to the required-field/enum checks, since a transcription
+    typo in a row key (e.g. "Layer Thickness" vs "Layer thickness") would
+    otherwise silently produce a column no query against this record
+    would ever find."""
+    problems = []
+    record = {k: (v.value if isinstance(v, Enum) else v) for k, v in record.items()}
+
+    for key in TABLE_RECORD_SCHEMA["required"]:
+        if key not in record or record[key] in (None, "", []):
+            problems.append(f"missing required field: {key}")
+
+    if record.get("source_type") not in [s.value for s in SourceType]:
+        problems.append(f"invalid source_type: {record.get('source_type')!r}")
+    if record.get("extraction_method") not in [e.value for e in ExtractionMethod]:
+        problems.append(f"invalid extraction_method: {record.get('extraction_method')!r}")
+    if "review_status" in record and record["review_status"] not in [r.value for r in ReviewStatus]:
+        problems.append(f"invalid review_status: {record.get('review_status')!r}")
+
+    column_names = {c["name"] for c in record.get("columns", [])}
+    for i, row in enumerate(record.get("rows", [])):
+        unknown = set(row.keys()) - column_names
+        if unknown:
+            problems.append(f"row {i} has keys not declared in columns: {sorted(unknown)}")
+
+    if record.get("doi") and not record.get("source_location"):
+        problems.append("record has a doi but no source_location (e.g. 'Table S1') -- not independently checkable")
+
+    if not record.get("open_access"):
+        problems.append("record is not marked open_access=True -- SpectraScribe only ingests open-access papers")
+
+    return problems
+
+
 def validate_record(record: dict) -> list:
     """Dependency-free validator, same pattern as SpectraVault's. Returns a
     list of problem strings; empty list means the record passes. Enforces

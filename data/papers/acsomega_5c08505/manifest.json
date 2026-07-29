@@ -387,5 +387,29 @@
       "doc_type": "si",
       "crop_path": "../data/papers/acsomega_5c08505/crops/si_page010_Figure_S14.png"
     }
-  ]
+  ],
+  "citation_metadata": {
+    "title": "Titania-Supported Photocatalytic Coatings of Cu2O Nanoparticles Synthesized via Heterogeneous Nucleation",
+    "authors": [
+      "Petra Dem\u00e9ny",
+      "Borb\u00e1la Tegze",
+      "B\u00e1lint Fodor",
+      "P\u00e1l Ma\u00e1k",
+      "J\u00e1nos Madar\u00e1sz",
+      "Zsombor Pap",
+      "D\u00e1niel Z\u00e1mb\u00f3",
+      "Tam\u00e1s Igricz",
+      "Ad\u00e9l Sarolta R\u00e1cz",
+      "Norbert Nagy",
+      "Zolt\u00e1n H\u00f3rv\u00f6lgyi"
+    ],
+    "journal": "ACS Omega",
+    "year": 2026,
+    "volume": "11",
+    "pages": "5374-5383",
+    "metadata_source": "extracted from PDF first page (ACS 'Cite This:' layout)",
+    "citation": "Petra Dem\u00e9ny, Borb\u00e1la Tegze, B\u00e1lint Fodor, P\u00e1l Ma\u00e1k, J\u00e1nos Madar\u00e1sz, Zsombor Pap, D\u00e1niel Z\u00e1mb\u00f3, Tam\u00e1s Igricz, Ad\u00e9l Sarolta R\u00e1cz, Norbert Nagy, Zolt\u00e1n H\u00f3rv\u00f6lgyi. Titania-Supported Photocatalytic Coatings of Cu2O Nanoparticles Synthesized via Heterogeneous Nucleation. ACS Omega 2026, 11, 5374-5383. https://doi.org/10.1021/acsomega.5c08505",
+    "fetched_at_utc": "2026-07-29T02:04:47.064018+00:00",
+    "metadata_reviewed": true
+  }
 }
