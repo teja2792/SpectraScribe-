@@ -43,12 +43,22 @@ worth being explicit about what's automated and what isn't:
       extract_table.py) after a human has actually looked at the
       overlay.
 
+Multi-curve figures (e.g. Figure S11: two curves, near-black and orange;
+Figure S12: four curves, all shades of orange) are handled by running
+this script once PER CURVE -- --curve-color isolates only the target
+curve's color and the connected-component filter ignores everything
+else on the plot, one curve at a time, never attempting to trace every
+curve in a single pass. --curve-label is required in this case so each
+curve gets its own record_id/filename/source_location and results don't
+collide or silently overwrite each other.
+
 Known limitations, stated up front:
-  - Single-curve figures only. A figure with multiple overlaid curves
-    (e.g. Figure S11/S12's multi-timepoint absorption spectra) will have
-    its curves picked up as one connected blob wherever they cross or
-    run close together -- not handled here. Documented as a real
-    follow-up, not silently mishandled.
+  - Curves that visually cross or run very close together can blend at
+    the crossing point into an intermediate color neither curve's
+    tolerance matches, producing a small gap in the trace right at the
+    crossing -- the connected-component width filter can still keep the
+    rest of the curve if the gap is short relative to the plot width,
+    but a long shared/overlapping run isn't handled. Check the overlay.
   - Assumes ticks are evenly spaced between the first and last detected
     tick (true for every figure in this project's real test paper, and
     for the overwhelming majority of scientific plots, but not
@@ -58,7 +68,7 @@ Known limitations, stated up front:
     (black/near-black) curve -- true for this project's real test
     figures, not guaranteed for a colored-curve or dark-theme plot.
 
-Usage:
+Usage (single-curve figure):
     python extract_spectrum.py --doi 10.xxxx/yyyy --label "Figure S2" \\
         --x-first-tick 100 --x-last-tick 1500 \\
         --y-first-tick 1000 --y-last-tick 0 \\
@@ -67,6 +77,21 @@ Usage:
         --measurement-purpose "confirm glass substrate's own Raman signal doesn't overlap sample peaks" \\
         --baseline-material null
     python extract_spectrum.py --doi 10.xxxx/yyyy --label "Figure S2" --mark-reviewed
+
+Usage (multi-curve figure -- one call per curve, e.g. Figure S11):
+    python extract_spectrum.py --doi 10.xxxx/yyyy --label "Figure S11" \\
+        --curve-label "Before adsorption step" --curve-color "0,0,0" \\
+        --x-first-tick 350 --x-last-tick 600 --y-first-tick 0.30 --y-last-tick 0.00 \\
+        --modality UV-Vis --x-axis "Wavelength (nm)" --y-axis "Absorbance (-)" \\
+        --material-formula "methyl orange" --material-description "methyl orange dye solution, before adsorption onto TiO2/Cu2O coating" \\
+        --measurement-purpose "baseline dye concentration prior to adsorption step" --baseline-material null
+    python extract_spectrum.py --doi 10.xxxx/yyyy --label "Figure S11" \\
+        --curve-label "After adsorption step" --curve-color "255,132,0" \\
+        --x-first-tick 350 --x-last-tick 600 --y-first-tick 0.30 --y-last-tick 0.00 \\
+        --modality UV-Vis --x-axis "Wavelength (nm)" --y-axis "Absorbance (-)" \\
+        --material-formula "methyl orange" --material-description "methyl orange dye solution, after adsorption onto TiO2/Cu2O coating" \\
+        --measurement-purpose "dye concentration after adsorption, to compute adsorbed fraction" \\
+        --baseline-material "Figure S11 (Before adsorption step) -- same figure, same DOI"
 """
 
 import argparse
@@ -82,11 +107,38 @@ from ingest_paper import paper_id_from_doi
 from schema import ExtractionMethod, Modality, ReviewStatus, SourceType, compute_confidence_score, validate_record
 
 
-DARK_THRESHOLD = 100        # grayscale value below which a pixel counts as "ink"
+DARK_THRESHOLD = 100        # grayscale value below which a pixel counts as border/tick "ink" -- kept
+                             # strict (border lines and tick marks are solid, fully opaque black in
+                             # every real figure hit so far) -- NOT used for curve tracing, see
+                             # CURVE_DARK_THRESHOLD below for why that needs to be looser.
+CURVE_DARK_THRESHOLD = 180  # grayscale value below which a pixel counts as "curve ink" in the default
+                             # (no --curve-color) single-black-curve mode. Looser than DARK_THRESHOLD
+                             # on purpose -- found necessary by hitting it: a real near-black curve
+                             # (Figure S11's "Before adsorption step" line) has long, nearly-flat
+                             # stretches where anti-aliasing spreads the line's darkness thin enough
+                             # that its darkest pixel in a column only reaches gray~130-150, well
+                             # above DARK_THRESHOLD=100. At threshold=100 the curve fragmented into
+                             # ~70 disconnected pieces and the width filter below kept only the
+                             # steepest (peak) region, silently dropping both flat wings (350-394nm
+                             # and 536-600nm) while still looking like a plausible, complete curve --
+                             # confirmed by checking traced x-range against the actual figure, not by
+                             # inspecting the overlay alone. At 170-180 the same curve traces as one
+                             # single component spanning the full plot width. Re-verified this doesn't
+                             # break the original single-curve pilot (Figure S2): its curve is already
+                             # a full-width single component at threshold=100, and stays full-width
+                             # (just a couple pixels thicker) at 180 too -- so loosening this was a
+                             # strict improvement on real test data, not a tradeoff made blind.
 BORDER_SEARCH_MARGIN = 3    # px excluded on each side of a detected border line when scanning for ticks/curve
 TICK_BAND_PX = 7            # how far outside the border to look for tick marks
 TICK_MIN_DARK_FRACTION = 0.5  # fraction of the tick band that must be dark to count as a tick
-MIN_CURVE_WIDTH_FRACTION = 0.5  # a connected component must span at least this fraction of the plot width to be "the curve", not a text label
+MIN_CURVE_SEGMENT_PX = 45  # a connected component must span at least this many pixels to count as
+                            # real curve data rather than a text label -- calibrated against this
+                            # project's real peak-position labels ("557", "793", "1101" on Figure
+                            # S2), each ~20-21px wide; set with roughly 2x margin above that. An
+                            # absolute pixel count, not a fraction of plot width, on purpose -- see
+                            # _isolate_curve_component()'s docstring for why a width-fraction filter
+                            # was wrong (discarded real, separate curve segments on either side of a
+                            # genuine occlusion gap).
 
 
 def _find_border_box(dark: np.ndarray) -> tuple:
@@ -152,26 +204,35 @@ def _isolate_curve_component(dark_interior: np.ndarray) -> np.ndarray:
     every dark pixel per column with no filtering, and produced a sudden
     spike wherever a label's digits added extra dark pixels above the
     real peak in that column. Fixed by connected-component labeling
-    (scipy.ndimage.label) and keeping only the component(s) whose
-    bounding box spans at least MIN_CURVE_WIDTH_FRACTION of the plot's
-    width -- the real curve runs continuously across nearly the entire
-    plot; a text label is a small, narrow, disconnected blob nowhere
-    near that wide. Multiple curve segments that got broken into
-    separate components (e.g. where the line dips below the DARK_THRESHOLD
-    at a low-intensity noisy stretch) are all kept as long as each
-    individually clears the width bar -- if the real curve is broken
-    into several sub-threshold-width pieces, none dominant, that's a
-    real failure mode this component-width heuristic won't catch,
-    flagged here rather than pretending it's handled."""
+    (scipy.ndimage.label) and keeping every component whose bounding box
+    spans at least MIN_CURVE_SEGMENT_PX -- measured directly against this
+    project's real peak-label text (Figure S2's "557"/"793"/"1101": each
+    digit group spans ~20-21px regardless of plot size), so the threshold
+    is set well above that (with margin) rather than as a fraction of
+    plot width.
+
+    This matters, not just as a style choice: an earlier version required
+    a component to span >=50% of the FULL plot width to be kept, which
+    silently discarded genuine curve data whenever the true curve was
+    broken into several separate pieces by real gaps -- found on this
+    project's real Figure S11, where the 'Before adsorption' curve is
+    partly occluded by the 'After adsorption' curve drawn on top of it
+    where the two nearly coincide (see extract_spectrum usage notes/
+    schema baseline_material field): the visible left wing, peak, and
+    right wing each individually span under 50% of the plot, so a
+    width-FRACTION filter kept none of them, while the label-sized
+    absolute-pixel filter correctly keeps all three as real curve data.
+    A genuine occlusion gap between kept segments is still a real,
+    honest gap in the output (not fabricated across) -- it just isn't
+    also punished by discarding the segments on either side of it."""
     labeled, n = ndimage.label(dark_interior, structure=np.ones((3, 3)))
-    width = dark_interior.shape[1]
     keep = np.zeros_like(dark_interior, dtype=bool)
     for label_id in range(1, n + 1):
         cols = np.where((labeled == label_id).any(axis=0))[0]
         if len(cols) == 0:
             continue
         span = cols.max() - cols.min()
-        if span >= MIN_CURVE_WIDTH_FRACTION * width:
+        if span >= MIN_CURVE_SEGMENT_PX:
             keep |= labeled == label_id
     return keep
 
@@ -195,15 +256,41 @@ def _linear_calibration(pixel_positions: list, first_value: float, last_value: f
     return float(slope), float(intercept), residual_std
 
 
+def _color_distance_mask(rgb: np.ndarray, target_color: tuple, tolerance: float) -> np.ndarray:
+    """Boolean mask of pixels within `tolerance` Euclidean RGB distance of
+    target_color. Used instead of the plain darkness threshold when a
+    figure has more than one curve distinguished by color (this project's
+    real Figure S11: a near-black 'Before adsorption' curve and an
+    orange(255,132,0) 'After adsorption' curve, both with a legend; S12:
+    four curves that are all shades of orange, distinguished by
+    saturation/lightness rather than hue). Sampling exact target colors
+    (not eyeballed) matters here: legend swatches and curve ink for the
+    same series are the same RGB in a vector-drawn/exported plot, so a
+    tight-ish tolerance cleanly separates same-figure curves that are
+    visually close (see S12's four orange shades) without needing hue-only
+    matching, which would confuse them."""
+    diff = rgb.astype(np.float64) - np.array(target_color, dtype=np.float64)
+    dist = np.sqrt((diff ** 2).sum(axis=-1))
+    return dist <= tolerance
+
+
 def digitize(crop_path: str, x_first_tick: float, x_last_tick: float,
-             y_first_tick: float, y_last_tick: float) -> dict:
+             y_first_tick: float, y_last_tick: float,
+             curve_color: tuple = None, color_tolerance: float = 45.0) -> dict:
     """Runs the full pipeline against one crop image. Returns a dict with
     x_values, y_values, digitization_error_estimate, and diagnostic info
     (tick counts found, calibration residuals) for the caller to inspect
-    before deciding whether to trust the result at all."""
-    img = Image.open(crop_path).convert("L")
-    arr = np.array(img)
-    dark = arr < DARK_THRESHOLD
+    before deciding whether to trust the result at all.
+
+    curve_color: when given (an (R,G,B) tuple), isolates ONLY the curve
+    matching that color -- see _color_distance_mask -- for multi-curve
+    figures. When None (default), falls back to plain darkness
+    thresholding, for the common single-black-curve case (e.g. Figure
+    S2). Axis border/tick detection ALWAYS uses darkness, regardless --
+    the axis frame is black no matter what color the data curve is."""
+    img_l = Image.open(crop_path).convert("L")
+    gray = np.array(img_l)
+    dark = gray < DARK_THRESHOLD
 
     top, bottom, left, right = _find_border_box(dark)
     x_ticks, y_ticks = _find_ticks(dark, top, bottom, left, right)
@@ -217,8 +304,14 @@ def digitize(crop_path: str, x_first_tick: float, x_last_tick: float,
     x_slope, x_intercept, x_resid = _linear_calibration(x_ticks, x_first_tick, x_last_tick)
     y_slope, y_intercept, y_resid = _linear_calibration(y_ticks, y_first_tick, y_last_tick)
 
-    interior = dark[top + BORDER_SEARCH_MARGIN : bottom - BORDER_SEARCH_MARGIN,
-                     left + BORDER_SEARCH_MARGIN : right - BORDER_SEARCH_MARGIN]
+    if curve_color is not None:
+        rgb = np.array(Image.open(crop_path).convert("RGB"))
+        ink = _color_distance_mask(rgb, curve_color, color_tolerance)
+    else:
+        ink = gray < CURVE_DARK_THRESHOLD
+
+    interior = ink[top + BORDER_SEARCH_MARGIN : bottom - BORDER_SEARCH_MARGIN,
+                    left + BORDER_SEARCH_MARGIN : right - BORDER_SEARCH_MARGIN]
     curve_mask = _isolate_curve_component(interior)
 
     x_values, y_values, col_thicknesses = [], [], []
@@ -234,7 +327,10 @@ def digitize(crop_path: str, x_first_tick: float, x_last_tick: float,
         col_thicknesses.append((rows_lit.max() - rows_lit.min()) * abs(y_slope))
 
     if not x_values:
-        raise ValueError("No curve pixels found after isolating the largest connected component -- check DARK_THRESHOLD and the crop image.")
+        hint = (f"no pixels matched curve_color={curve_color} within tolerance={color_tolerance} -- "
+                f"try sampling the exact RGB again or widening --color-tolerance" if curve_color is not None
+                else "check DARK_THRESHOLD against the crop image")
+        raise ValueError(f"No curve pixels found after isolating the largest connected component -- {hint}.")
 
     # digitization_error_estimate combines two independent sources: how
     # well the assumed-evenly-spaced ticks actually fit a line
@@ -299,12 +395,32 @@ def main():
     parser.add_argument("--baseline-material", help="What this spectrum is compared against, or the literal string 'null' if there isn't one.")
     parser.add_argument("--extraction-method", default=ExtractionMethod.SEMI_AUTOMATED_DIGITIZER.value,
                          choices=[e.value for e in ExtractionMethod])
+
+    # --- Multi-curve figures: one curve per run, never all at once ---
+    # A figure with more than one curve (e.g. this project's real Figure
+    # S11: 'Before adsorption step' in near-black, 'After adsorption
+    # step' in orange; Figure S12: four time points, all shades of
+    # orange) is handled by running this script once per curve, isolating
+    # only that curve's color and ignoring everything else on the plot --
+    # never attempting to trace every curve in one pass. --curve-label
+    # is required whenever a figure has more than one curve specifically
+    # so record_id/filenames/source_location stay distinct per curve
+    # instead of colliding (see main()'s slug construction below).
+    parser.add_argument("--curve-label", help='Which curve this run is for, e.g. "Before adsorption step" -- required for multi-curve figures. Appended to record_id/filenames/source_location so curves from the same figure never collide.')
+    parser.add_argument("--curve-color", help='"R,G,B" of the target curve, sampled from the actual crop image (e.g. from its legend swatch) -- required when a figure has more than one curve. Omit for single-black-curve figures.')
+    parser.add_argument("--color-tolerance", type=float, default=45.0, help="Euclidean RGB distance a pixel may be from --curve-color and still count as this curve.")
     args = parser.parse_args()
 
     paper_id = paper_id_from_doi(args.doi)
     paper_dir = Path(args.data_root) / "papers" / paper_id
     manifest_path = paper_dir / "manifest.json"
-    safe_label = args.label.replace(" ", "_").replace(".", "")
+    label_slug = args.label.replace(" ", "_").replace(".", "")
+    curve_slug = None
+    if args.curve_label:
+        curve_slug = "".join(c if c.isalnum() else "_" for c in args.curve_label).strip("_")
+        while "__" in curve_slug:
+            curve_slug = curve_slug.replace("__", "_")
+    safe_label = f"{label_slug}_{curve_slug}" if curve_slug else label_slug
 
     if args.mark_reviewed:
         rec_path = paper_dir / "spectra" / f"{safe_label}.json"
@@ -344,14 +460,23 @@ def main():
         raise SystemExit(f"[ERROR] {out_path} already exists -- pass --overwrite to redo it.")
 
     crop_path = region["crop_path"]
+    curve_color = None
+    if args.curve_color:
+        parts = [p.strip() for p in args.curve_color.split(",")]
+        if len(parts) != 3:
+            raise SystemExit(f"[ERROR] --curve-color must be 'R,G,B', got {args.curve_color!r}")
+        curve_color = tuple(int(p) for p in parts)
+
     try:
-        digitized = digitize(crop_path, args.x_first_tick, args.x_last_tick, args.y_first_tick, args.y_last_tick)
+        digitized = digitize(crop_path, args.x_first_tick, args.x_last_tick, args.y_first_tick, args.y_last_tick,
+                              curve_color=curve_color, color_tolerance=args.color_tolerance)
     except ValueError as e:
         raise SystemExit(f"[ERROR] {e}")
 
     write_overlay(crop_path, digitized, str(overlay_path))
 
     baseline = None if args.baseline_material.strip().lower() == "null" else args.baseline_material
+    source_location = f"{region['label']} ({args.curve_label})" if args.curve_label else region["label"]
 
     record = {
         "record_id": f"{paper_id}_{safe_label.lower()}",
@@ -373,13 +498,14 @@ def main():
         "source_name": citation_meta.get("journal") or "unknown",
         "source_url": f"https://doi.org/{args.doi}",
         "doi": manifest["doi"],
-        "source_location": region["label"],
+        "source_location": source_location,
         "license": manifest["license"],
         "citation": citation_meta["citation"],
         "peer_reviewed": True,
         "open_access": True,
         "cross_validated": False,
         "notes": f"Digitized algorithmically from {crop_path}; overlay at {overlay_path}. "
+                 f"curve_color={curve_color}, color_tolerance={args.color_tolerance}. "
                  f"Diagnostics: {digitized['diagnostics']}",
     }
     record["confidence_score"], record["confidence_breakdown"] = compute_confidence_score(record)
