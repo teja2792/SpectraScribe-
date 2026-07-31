@@ -155,6 +155,20 @@ MIN_CURVE_SEGMENT_PX = 45  # a connected component must span at least this many 
                             # _isolate_curve_component()'s docstring for why a width-fraction filter
                             # was wrong (discarded real, separate curve segments on either side of a
                             # genuine occlusion gap).
+NEAR_VERTICAL_SPAN_PX = 40  # if a single column's matched-ink rows span more than this, the curve is
+                             # nearly vertical at that x (a steep peak edge) -- averaging all lit rows
+                             # in that column lands the traced point somewhere in mid-air between the
+                             # peak tip and the baseline, understating the real peak height. Caught for
+                             # real on this project's own Figure S4 (XPS survey): plain column-averaging
+                             # measured the Cu 2p peak at ~773,000 cps against a true ~1,102,000 cps
+                             # (confirmed by finding the single highest-intensity matched pixel directly)
+                             # -- a 30% understatement, entirely from 16 near-vertical columns out of
+                             # 835 total. Sharp, narrow peaks (XPS core levels) hit this; the broader
+                             # peaks in this project's other figures (Raman, XRD, UV-Vis) mostly didn't,
+                             # but the fix is general and applied unconditionally below, not gated to
+                             # "XPS mode," since any sufficiently sharp peak in any modality could hit
+                             # the same failure. Above this span, the topmost (min-row = highest-
+                             # intensity) matched pixel is used instead of the column mean.
 
 
 def _find_border_box(dark: np.ndarray) -> tuple:
@@ -413,16 +427,32 @@ def digitize(crop_path: str, x_first_tick: float, x_last_tick: float,
     curve_mask = _isolate_curve_component(interior)
 
     x_values, y_values, col_thicknesses = [], [], []
+    last_row = None  # tracks curve continuity across columns -- see NEAR_VERTICAL_SPAN_PX below
     for col in range(curve_mask.shape[1]):
         rows_lit = np.where(curve_mask[:, col])[0]
         if len(rows_lit) == 0:
             continue
-        row_centroid = rows_lit.mean()
+        span = rows_lit.max() - rows_lit.min()
+        if span > NEAR_VERTICAL_SPAN_PX:
+            # Column-mean would land this point in mid-air between the peak
+            # tip and the baseline (see NEAR_VERTICAL_SPAN_PX's definition
+            # for the real case this was caught on). Pick whichever end of
+            # the run -- top or bottom -- continues from the last traced
+            # point, so a rising edge tracks up to the peak and a falling
+            # edge tracks back down to baseline, instead of arbitrarily
+            # always assuming "peaks point up."
+            if last_row is None or abs(rows_lit.min() - last_row) <= abs(rows_lit.max() - last_row):
+                row_centroid = float(rows_lit.min())
+            else:
+                row_centroid = float(rows_lit.max())
+        else:
+            row_centroid = rows_lit.mean()
+        last_row = row_centroid
         pixel_row = row_centroid + top + BORDER_SEARCH_MARGIN
         pixel_col = col + left + BORDER_SEARCH_MARGIN
         x_values.append(x_slope * pixel_col + x_intercept)
         y_values.append(y_slope * pixel_row + y_intercept)
-        col_thicknesses.append((rows_lit.max() - rows_lit.min()) * abs(y_slope))
+        col_thicknesses.append(0.0 if span > NEAR_VERTICAL_SPAN_PX else span * abs(y_slope))
 
     if not x_values:
         hint = (f"no pixels matched curve_color={curve_color} within tolerance={color_tolerance} -- "

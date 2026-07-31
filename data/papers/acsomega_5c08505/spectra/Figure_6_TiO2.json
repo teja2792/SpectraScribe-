@@ -1096,7 +1096,7 @@
   "extraction_method": "semi-automated-digitizer",
   "review_status": "self-reviewed",
   "curator": "SpectraScribe (extract_spectrum.py, algorithmic trace + human calibration)",
-  "retrieved_at_utc": "2026-07-31T04:21:45.597213+00:00",
+  "retrieved_at_utc": "2026-07-31T04:58:33.194752+00:00",
   "source_name": "ACS Omega",
   "source_url": "https://doi.org/10.1021/acsomega.5c08505",
   "doi": "10.1021/acsomega.5c08505",

@@ -35,7 +35,7 @@ def digitize_panel(panel, x_first, x_last, y_first, y_last, y_uncal, n_xticks_us
         x_ticks = x_ticks[:n_xticks_use]
     # Reuse digitize()'s internal logic by calling the pieces directly since we need
     # custom tick-list truncation (panel b) that the CLI path doesn't expose.
-    from extract_spectrum import _isolate_curve_component, BORDER_SEARCH_MARGIN, CURVE_DARK_THRESHOLD
+    from extract_spectrum import _isolate_curve_component, BORDER_SEARCH_MARGIN, CURVE_DARK_THRESHOLD, NEAR_VERTICAL_SPAN_PX
     x_slope, x_intercept, x_resid = _linear_calibration(x_ticks, x_first, x_last, x_tick_step)
     if y_uncal:
         y_slope, y_intercept, y_resid = _linear_calibration([top, bottom], y_first, y_last)
@@ -45,15 +45,29 @@ def digitize_panel(panel, x_first, x_last, y_first, y_last, y_uncal, n_xticks_us
     interior = ink[top+BORDER_SEARCH_MARGIN:bottom-BORDER_SEARCH_MARGIN, left+BORDER_SEARCH_MARGIN:right-BORDER_SEARCH_MARGIN]
     curve_mask = _isolate_curve_component(interior)
     x_values, y_values, thick = [], [], []
+    last_row = None  # same near-vertical-column fix as extract_spectrum.py's digitize() --
+                      # this script duplicates the trace loop (needed custom tick-list
+                      # truncation for panel b) so the fix has to be duplicated too, not
+                      # inherited automatically. See NEAR_VERTICAL_SPAN_PX's docstring in
+                      # extract_spectrum.py for the real case (Figure S4) that found this.
     for col in range(curve_mask.shape[1]):
         rows = np.where(curve_mask[:, col])[0]
         if len(rows) == 0:
             continue
-        pr = rows.mean() + top + BORDER_SEARCH_MARGIN
+        span = rows.max() - rows.min()
+        if span > NEAR_VERTICAL_SPAN_PX:
+            if last_row is None or abs(rows.min() - last_row) <= abs(rows.max() - last_row):
+                pr = float(rows.min())
+            else:
+                pr = float(rows.max())
+        else:
+            pr = rows.mean()
+        last_row = pr
+        pr = pr + top + BORDER_SEARCH_MARGIN
         pc = col + left + BORDER_SEARCH_MARGIN
         x_values.append(x_slope*pc + x_intercept)
         y_values.append(y_slope*pr + y_intercept)
-        thick.append((rows.max()-rows.min())*abs(y_slope))
+        thick.append(0.0 if span > NEAR_VERTICAL_SPAN_PX else span*abs(y_slope))
     err = float(y_resid + (np.mean(thick)/2 if thick else 0))
     diag = {"n_x_ticks_found": len(x_ticks), "n_y_ticks_found": len(y_ticks),
             "x_calibration_residual_std": x_resid, "y_calibration_residual_std": y_resid,
