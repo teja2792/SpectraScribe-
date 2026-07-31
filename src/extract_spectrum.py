@@ -107,10 +107,26 @@ from ingest_paper import paper_id_from_doi
 from schema import ExtractionMethod, Modality, ReviewStatus, SourceType, compute_confidence_score, validate_record
 
 
-DARK_THRESHOLD = 100        # grayscale value below which a pixel counts as border/tick "ink" -- kept
-                             # strict (border lines and tick marks are solid, fully opaque black in
-                             # every real figure hit so far) -- NOT used for curve tracing, see
-                             # CURVE_DARK_THRESHOLD below for why that needs to be looser.
+DARK_THRESHOLD = 100        # grayscale value below which a pixel counts as generic "ink" -- NOT used
+                             # for curve tracing (see CURVE_DARK_THRESHOLD) or border/tick detection
+                             # (see BORDER_DETECT_THRESHOLD), both of which need looser thresholds;
+                             # kept as the strict baseline for anything else.
+BORDER_DETECT_THRESHOLD = 200  # grayscale value used ONLY for finding the border box and tick marks.
+                             # Looser than DARK_THRESHOLD on purpose -- found necessary by hitting it:
+                             # this project's real Figure S3 draws its TOP border line in a lighter
+                             # gray (~gray 93-based row only registers below ~200, not below 100) while
+                             # its bottom/left/right borders are solid black -- an inconsistency within
+                             # the SAME figure, not just across figures. At DARK_THRESHOLD=100, border
+                             # detection missed the true top border entirely and locked onto some other
+                             # dense-but-wrong row instead, which silently clipped the tallest peak in
+                             # the whole spectrum (146 cm-1) out of the interior region entirely -- no
+                             # error, just missing data, caught only by checking traced x-range against
+                             # the actual peak labels, same as every other real bug in this file. A
+                             # border/tick line is identifiable by spanning nearly the FULL width or
+                             # height of the image regardless of its exact shade, so a looser threshold
+                             # here is safe: real content (curves, text) essentially never also spans
+                             # the full image width/height, so there's no realistic risk of the looser
+                             # threshold picking up something else as "the border."
 CURVE_DARK_THRESHOLD = 180  # grayscale value below which a pixel counts as "curve ink" in the default
                              # (no --curve-color) single-black-curve mode. Looser than DARK_THRESHOLD
                              # on purpose -- found necessary by hitting it: a real near-black curve
@@ -143,18 +159,31 @@ MIN_CURVE_SEGMENT_PX = 45  # a connected component must span at least this many 
 
 def _find_border_box(dark: np.ndarray) -> tuple:
     """Locates the plot's rectangular axis border: the row/column with
-    the most dark pixels in its half of the image, on each of the four
-    sides. Returns (top, bottom, left, right) pixel coordinates. Assumes
-    exactly one clean rectangular border, which is true of every figure
-    in this project's real test data (standard OriginLab/SciDAVis-style
-    plots) -- a figure without a drawn border box isn't handled."""
+    the most dark pixels, searched separately in each side's own outer
+    QUARTER of the image (top in rows [0, h/4), bottom in [3h/4, h), same
+    idea for left/right columns). Returns (top, bottom, left, right)
+    pixel coordinates. Assumes exactly one clean rectangular border,
+    true of every figure in this project's real test data.
+
+    Restricted to a quarter, not a half, on purpose -- found necessary
+    by hitting it on a real figure (S3) whose x-axis has an in-plot
+    annotation ('634', a peak label with a leader line) sitting past the
+    horizontal midpoint of the image: at BORDER_DETECT_THRESHOLD's looser
+    threshold (needed to catch this same figure's unusually light top
+    border line -- see that constant's docstring), the annotation's
+    column tied the real right border's dark-pixel count, and argmax's
+    first-occurrence tiebreak picked the annotation instead, silently
+    cutting off roughly a third of the real x-axis range. A quarter-width
+    restriction keeps genuine border lines (always right at the plot's
+    edge) in scope while excluding in-plot content like this, which sits
+    well inside the middle of the image regardless of threshold."""
     h, w = dark.shape
     row_counts = dark.sum(axis=1)
     col_counts = dark.sum(axis=0)
-    top = int(np.argmax(row_counts[: h // 2]))
-    bottom = int(h // 2 + np.argmax(row_counts[h // 2 :]))
-    left = int(np.argmax(col_counts[: w // 2]))
-    right = int(w // 2 + np.argmax(col_counts[w // 2 :]))
+    top = int(np.argmax(row_counts[: h // 4]))
+    bottom = int(3 * h // 4 + np.argmax(row_counts[3 * h // 4 :]))
+    left = int(np.argmax(col_counts[: w // 4]))
+    right = int(3 * w // 4 + np.argmax(col_counts[3 * w // 4 :]))
     return top, bottom, left, right
 
 
@@ -237,21 +266,43 @@ def _isolate_curve_component(dark_interior: np.ndarray) -> np.ndarray:
     return keep
 
 
-def _linear_calibration(pixel_positions: list, first_value: float, last_value: float) -> tuple:
-    """Fits pixel -> data-value as a straight line through the first and
-    last detected tick, using EVERY detected tick's assumed value
-    (linearly interpolated between first_value and last_value, assuming
-    even spacing -- true for all real figures this project has hit) as
-    a least-squares check, not just the two endpoints -- this is what
-    lets a residual/error estimate mean something: if the ticks aren't
-    actually evenly spaced (a bad assumption for this figure), the fit
-    residual will be large and visible in digitization_error_estimate,
-    not silently swallowed by only ever using 2 points to define a line
-    exactly. Returns (slope, intercept, residual_std)."""
-    n = len(pixel_positions)
-    assumed_values = np.linspace(first_value, last_value, n)
+def _linear_calibration(pixel_positions: list, first_value: float, last_value: float,
+                         tick_step: float = None) -> tuple:
+    """Fits pixel -> data-value as a straight line through the detected
+    ticks. Returns (slope, intercept, residual_std).
+
+    Two modes:
+
+    tick_step=None (default): assumes the N detected tick pixels are N
+    CONSECUTIVE evenly-spaced ticks running from first_value to
+    last_value, via np.linspace -- correct as long as tick detection
+    found every tick with none missing in the middle.
+
+    tick_step=<value>: does NOT assume the detected pixels are
+    consecutive. Instead computes each pixel's value from a straight
+    line through (first pixel, first_value) and (last pixel, last_value)
+    directly, then SNAPS that estimate to the nearest real multiple of
+    tick_step -- self-consistent, so a tick that got missed in the
+    middle of the detected list (found necessary on this project's real
+    Figure S3: the curve itself crosses over 2 of the 13 real tick
+    positions, hiding them from _find_ticks entirely, so the 11 ticks
+    that WERE found are not 11 consecutive values) doesn't silently
+    shift every value after the gap. Caught by comparing traced peak
+    positions against the paper's own printed peak labels (146, 215,
+    412, 634 cm-1): the naive linspace assumption was off by up to 19
+    units on some peaks; snap-to-tick_step brought that back down to a
+    few units, consistent with every other figure in this project."""
+    pixel_positions = np.array(pixel_positions, dtype=np.float64)
+    if tick_step is None:
+        n = len(pixel_positions)
+        assumed_values = np.linspace(first_value, last_value, n)
+    else:
+        first_px, last_px = pixel_positions[0], pixel_positions[-1]
+        rough_slope = (last_value - first_value) / (last_px - first_px)
+        rough_estimate = first_value + (pixel_positions - first_px) * rough_slope
+        assumed_values = np.round((rough_estimate - first_value) / tick_step) * tick_step + first_value
     slope, intercept = np.polyfit(pixel_positions, assumed_values, 1)
-    predicted = slope * np.array(pixel_positions) + intercept
+    predicted = slope * pixel_positions + intercept
     residual_std = float(np.std(assumed_values - predicted))
     return float(slope), float(intercept), residual_std
 
@@ -276,7 +327,9 @@ def _color_distance_mask(rgb: np.ndarray, target_color: tuple, tolerance: float)
 
 def digitize(crop_path: str, x_first_tick: float, x_last_tick: float,
              y_first_tick: float, y_last_tick: float,
-             curve_color: tuple = None, color_tolerance: float = 45.0) -> dict:
+             curve_color: tuple = None, color_tolerance: float = 45.0,
+             y_uncalibrated: bool = False, x_tick_step: float = None,
+             y_tick_step: float = None) -> dict:
     """Runs the full pipeline against one crop image. Returns a dict with
     x_values, y_values, digitization_error_estimate, and diagnostic info
     (tick counts found, calibration residuals) for the caller to inspect
@@ -287,22 +340,45 @@ def digitize(crop_path: str, x_first_tick: float, x_last_tick: float,
     figures. When None (default), falls back to plain darkness
     thresholding, for the common single-black-curve case (e.g. Figure
     S2). Axis border/tick detection ALWAYS uses darkness, regardless --
-    the axis frame is black no matter what color the data curve is."""
+    the axis frame is black no matter what color the data curve is.
+
+    y_uncalibrated: some real published spectra (this project's own
+    Figure S3 among them) print NO y-axis tick marks or numbers at all --
+    just an axis label like 'Intensity (a.u.)', because the absolute
+    scale genuinely isn't meaningful (baseline-offset, arbitrary units).
+    Confirmed by checking the full page render, not assumed from the
+    crop alone -- ruled out that region-detection had cropped real tick
+    labels out. When true, y_first_tick/y_last_tick are treated as the
+    values at the border's TOP and BOTTOM pixel rows directly (not tick
+    positions), producing a relative 0-1-style scale rather than a false
+    claim of calibrated intensity units -- the caller is responsible for
+    labeling y_axis accordingly (e.g. '...relative pixel scale, source
+    prints no y-axis ticks') so nobody downstream mistakes this for a
+    real calibrated intensity axis."""
     img_l = Image.open(crop_path).convert("L")
     gray = np.array(img_l)
-    dark = gray < DARK_THRESHOLD
+    border_mask = gray < BORDER_DETECT_THRESHOLD
 
-    top, bottom, left, right = _find_border_box(dark)
-    x_ticks, y_ticks = _find_ticks(dark, top, bottom, left, right)
-    if len(x_ticks) < 2 or len(y_ticks) < 2:
+    top, bottom, left, right = _find_border_box(border_mask)
+    x_ticks, y_ticks = _find_ticks(border_mask, top, bottom, left, right)
+    if len(x_ticks) < 2:
         raise ValueError(
-            f"Found only {len(x_ticks)} x-ticks and {len(y_ticks)} y-ticks -- need at least 2 per "
-            f"axis to calibrate. This figure's tick marks may not match the expected style (short "
-            f"marks just outside a rectangular border); check the crop manually."
+            f"Found only {len(x_ticks)} x-ticks -- need at least 2 to calibrate. This figure's tick "
+            f"marks may not match the expected style (short marks just outside a rectangular border); "
+            f"check the crop manually."
+        )
+    if not y_uncalibrated and len(y_ticks) < 2:
+        raise ValueError(
+            f"Found only {len(y_ticks)} y-ticks -- need at least 2 to calibrate. If this figure genuinely "
+            f"has no y-axis tick marks (check the full page, not just the crop, to be sure it's not a "
+            f"cropping artifact), pass y_uncalibrated=True instead."
         )
 
-    x_slope, x_intercept, x_resid = _linear_calibration(x_ticks, x_first_tick, x_last_tick)
-    y_slope, y_intercept, y_resid = _linear_calibration(y_ticks, y_first_tick, y_last_tick)
+    x_slope, x_intercept, x_resid = _linear_calibration(x_ticks, x_first_tick, x_last_tick, x_tick_step)
+    if y_uncalibrated:
+        y_slope, y_intercept, y_resid = _linear_calibration([top, bottom], y_first_tick, y_last_tick)
+    else:
+        y_slope, y_intercept, y_resid = _linear_calibration(y_ticks, y_first_tick, y_last_tick, y_tick_step)
 
     if curve_color is not None:
         rgb = np.array(Image.open(crop_path).convert("RGB"))
@@ -409,6 +485,9 @@ def main():
     parser.add_argument("--curve-label", help='Which curve this run is for, e.g. "Before adsorption step" -- required for multi-curve figures. Appended to record_id/filenames/source_location so curves from the same figure never collide.')
     parser.add_argument("--curve-color", help='"R,G,B" of the target curve, sampled from the actual crop image (e.g. from its legend swatch) -- required when a figure has more than one curve. Omit for single-black-curve figures.')
     parser.add_argument("--color-tolerance", type=float, default=45.0, help="Euclidean RGB distance a pixel may be from --curve-color and still count as this curve.")
+    parser.add_argument("--y-uncalibrated", action="store_true", help="This figure prints no y-axis tick marks/numbers at all (verified against the full page, not just the crop) -- treat --y-first-tick/--y-last-tick as the values at the plot border's top/bottom pixel rows instead of requiring real tick detection.")
+    parser.add_argument("--x-tick-step", type=float, help="Data units between consecutive x-axis ticks (e.g. 100). Use when the curve itself crosses over some tick marks, hiding them from detection -- without this, detected-but-non-consecutive ticks get silently mis-assigned to consecutive values.")
+    parser.add_argument("--y-tick-step", type=float, help="Same as --x-tick-step, for the y-axis.")
     args = parser.parse_args()
 
     paper_id = paper_id_from_doi(args.doi)
@@ -469,7 +548,9 @@ def main():
 
     try:
         digitized = digitize(crop_path, args.x_first_tick, args.x_last_tick, args.y_first_tick, args.y_last_tick,
-                              curve_color=curve_color, color_tolerance=args.color_tolerance)
+                              curve_color=curve_color, color_tolerance=args.color_tolerance,
+                              y_uncalibrated=args.y_uncalibrated,
+                              x_tick_step=args.x_tick_step, y_tick_step=args.y_tick_step)
     except ValueError as e:
         raise SystemExit(f"[ERROR] {e}")
 
