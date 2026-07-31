@@ -329,7 +329,7 @@ def digitize(crop_path: str, x_first_tick: float, x_last_tick: float,
              y_first_tick: float, y_last_tick: float,
              curve_color: tuple = None, color_tolerance: float = 45.0,
              y_uncalibrated: bool = False, x_tick_step: float = None,
-             y_tick_step: float = None) -> dict:
+             y_tick_step: float = None, exclude_boxes: list = None) -> dict:
     """Runs the full pipeline against one crop image. Returns a dict with
     x_values, y_values, digitization_error_estimate, and diagnostic info
     (tick counts found, calibration residuals) for the caller to inspect
@@ -354,7 +354,25 @@ def digitize(crop_path: str, x_first_tick: float, x_last_tick: float,
     claim of calibrated intensity units -- the caller is responsible for
     labeling y_axis accordingly (e.g. '...relative pixel scale, source
     prints no y-axis ticks') so nobody downstream mistakes this for a
-    real calibrated intensity axis."""
+    real calibrated intensity axis.
+
+    exclude_boxes: list of (x1, y1, x2, y2) pixel rectangles, in the full
+    crop image's own coordinates, to blank out of the curve-ink mask
+    before isolation. Needed for legend boxes: a legend's color swatch
+    line is drawn in the exact same RGB as its curve (by construction --
+    that's the point of a legend), so color-distance isolation picks it
+    up as a second same-colored connected component. If the swatch is
+    wide enough to pass MIN_CURVE_SEGMENT_PX and shares any x-columns
+    with the real curve, the per-column row-average below silently
+    blends the real curve's row with the legend swatch's row in those
+    columns, corrupting the trace with a flat, wrong plateau at the
+    legend's y-position. Caught for real on this project's own Figure 6
+    (glass-substrate curve, ~90% transmittance) which got a flat wrong
+    segment at 68.29% for wavelengths 737-810 nm -- exactly where the
+    'glass substrate' legend entry's swatch line sits. Verify a legend
+    box's pixel bounds don't overlap any real curve data before excluding
+    it (here they didn't: the legend sits at y<49% transmittance in a
+    wavelength range where every real curve is already above 50%)."""
     img_l = Image.open(crop_path).convert("L")
     gray = np.array(img_l)
     border_mask = gray < BORDER_DETECT_THRESHOLD
@@ -385,6 +403,10 @@ def digitize(crop_path: str, x_first_tick: float, x_last_tick: float,
         ink = _color_distance_mask(rgb, curve_color, color_tolerance)
     else:
         ink = gray < CURVE_DARK_THRESHOLD
+
+    if exclude_boxes:
+        for (bx1, by1, bx2, by2) in exclude_boxes:
+            ink[by1:by2, bx1:bx2] = False
 
     interior = ink[top + BORDER_SEARCH_MARGIN : bottom - BORDER_SEARCH_MARGIN,
                     left + BORDER_SEARCH_MARGIN : right - BORDER_SEARCH_MARGIN]
@@ -488,7 +510,19 @@ def main():
     parser.add_argument("--y-uncalibrated", action="store_true", help="This figure prints no y-axis tick marks/numbers at all (verified against the full page, not just the crop) -- treat --y-first-tick/--y-last-tick as the values at the plot border's top/bottom pixel rows instead of requiring real tick detection.")
     parser.add_argument("--x-tick-step", type=float, help="Data units between consecutive x-axis ticks (e.g. 100). Use when the curve itself crosses over some tick marks, hiding them from detection -- without this, detected-but-non-consecutive ticks get silently mis-assigned to consecutive values.")
     parser.add_argument("--y-tick-step", type=float, help="Same as --x-tick-step, for the y-axis.")
+    parser.add_argument("--exclude-box", action="append", default=[],
+                         help='"x1,y1,x2,y2" pixel rectangle (in the crop image\'s own coordinates) to blank '
+                              'out before curve isolation -- use for legend boxes when the legend swatch color '
+                              'matches --curve-color (it will otherwise get traced as a second curve segment '
+                              'and corrupt columns it shares with the real curve). Repeatable.')
     args = parser.parse_args()
+
+    exclude_boxes = []
+    for spec in args.exclude_box:
+        parts = [p.strip() for p in spec.split(",")]
+        if len(parts) != 4:
+            raise SystemExit(f"[ERROR] --exclude-box must be 'x1,y1,x2,y2', got {spec!r}")
+        exclude_boxes.append(tuple(int(p) for p in parts))
 
     paper_id = paper_id_from_doi(args.doi)
     paper_dir = Path(args.data_root) / "papers" / paper_id
@@ -550,7 +584,8 @@ def main():
         digitized = digitize(crop_path, args.x_first_tick, args.x_last_tick, args.y_first_tick, args.y_last_tick,
                               curve_color=curve_color, color_tolerance=args.color_tolerance,
                               y_uncalibrated=args.y_uncalibrated,
-                              x_tick_step=args.x_tick_step, y_tick_step=args.y_tick_step)
+                              x_tick_step=args.x_tick_step, y_tick_step=args.y_tick_step,
+                              exclude_boxes=exclude_boxes)
     except ValueError as e:
         raise SystemExit(f"[ERROR] {e}")
 
@@ -586,8 +621,11 @@ def main():
         "open_access": True,
         "cross_validated": False,
         "notes": f"Digitized algorithmically from {crop_path}; overlay at {overlay_path}. "
-                 f"curve_color={curve_color}, color_tolerance={args.color_tolerance}. "
-                 f"Diagnostics: {digitized['diagnostics']}",
+                 f"curve_color={curve_color}, color_tolerance={args.color_tolerance}"
+                 + (f", exclude_boxes={exclude_boxes} (legend/annotation regions blanked out of the curve-ink "
+                    f"mask before isolation -- see extract_spectrum.py digitize() docstring for why)"
+                    if exclude_boxes else "")
+                 + f". Diagnostics: {digitized['diagnostics']}",
     }
     record["confidence_score"], record["confidence_breakdown"] = compute_confidence_score(record)
 
