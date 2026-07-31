@@ -1,0 +1,55 @@
+{
+  "record_id": "acsomega_5c08505_figure_7_a_tio2_cu2o_30_min",
+  "doi": "10.1021/acsomega.5c08505",
+  "source_location": "Figure 7 (a: TiO2/Cu2O 30 min)",
+  "license": "CC-BY 4.0 (ACS Omega)",
+  "citation": "Petra Dem\u00e9ny, Borb\u00e1la Tegze, B\u00e1lint Fodor, P\u00e1l Ma\u00e1k, J\u00e1nos Madar\u00e1sz, Zsombor Pap, D\u00e1niel Z\u00e1mb\u00f3, Tam\u00e1s Igricz, Ad\u00e9l Sarolta R\u00e1cz, Norbert Nagy, Zolt\u00e1n H\u00f3rv\u00f6lgyi. Titania-Supported Photocatalytic Coatings of Cu2O Nanoparticles Synthesized via Heterogeneous Nucleation. ACS Omega 2026, 11, 5374-5383. https://doi.org/10.1021/acsomega.5c08505",
+  "material_description": "Glass substrate coated with TiO2, then Cu2O nanoparticles deposited via heterogeneous nucleation for 30 min reaction time, under UV irradiation",
+  "baseline_material": "reference TiO2 (no Cu2O deposition)",
+  "measurement_purpose": "Assess UV-light photocatalytic degradation of methyl orange dye (A/A0 = absorbance ratio to initial) as a function of Cu2O deposition time, to find the optimal Cu2O loading for photocatalytic activity",
+  "table_title": "Figure 7. Photocatalytic activity of the TiO2/Cu2O samples in methyl orange dye solution under (a) UV and (b) visible light irradiation.",
+  "columns": [
+    {
+      "name": "Time",
+      "unit": "h"
+    },
+    {
+      "name": "A/A0",
+      "unit": "dimensionless"
+    }
+  ],
+  "rows": [
+    {
+      "Time": 0.0,
+      "A/A0": 1.0
+    },
+    {
+      "Time": 1.0,
+      "A/A0": 0.885
+    },
+    {
+      "Time": 2.0,
+      "A/A0": 0.79
+    },
+    {
+      "Time": 3.0,
+      "A/A0": 0.723
+    }
+  ],
+  "source_type": "digitized-from-figure",
+  "extraction_method": "hand-traced",
+  "review_status": "self-reviewed",
+  "curator": "SpectraScribe (extract_table.py, transcription human/LLM-provided)",
+  "retrieved_at_utc": "2026-07-31T04:34:13.253068+00:00",
+  "peer_reviewed": true,
+  "open_access": true,
+  "cross_validated": false,
+  "confidence_score": 0.49999999999999994,
+  "confidence_breakdown": {
+    "source_type": 0.3,
+    "extraction_method": 0.05,
+    "peer_reviewed": 0.1,
+    "open_access": 0.05,
+    "cross_validated": 0.0
+  }
+}

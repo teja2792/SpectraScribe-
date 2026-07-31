@@ -4,6 +4,9 @@
   "source_location": "Table S1",
   "license": "CC-BY 4.0 (ACS Omega)",
   "citation": "Petra Dem\u00e9ny, Borb\u00e1la Tegze, B\u00e1lint Fodor, P\u00e1l Ma\u00e1k, J\u00e1nos Madar\u00e1sz, Zsombor Pap, D\u00e1niel Z\u00e1mb\u00f3, Tam\u00e1s Igricz, Ad\u00e9l Sarolta R\u00e1cz, Norbert Nagy, Zolt\u00e1n H\u00f3rv\u00f6lgyi. Titania-Supported Photocatalytic Coatings of Cu2O Nanoparticles Synthesized via Heterogeneous Nucleation. ACS Omega 2026, 11, 5374-5383. https://doi.org/10.1021/acsomega.5c08505",
+  "material_description": "Three individually-characterized coating layers relevant to the TiO2/Cu2O photocatalytic stack: the mesoporous TiO2 active layer, the compact silica barrier layer deposited beneath it, and a mesoporous silica reference coating grown separately for comparison. Material identity for each measurement is given per-row in the 'Sample' column.",
+  "baseline_material": null,
+  "measurement_purpose": "Characterize the optical and physical properties (effective refractive index, layer thickness, porosity) of each individual coating layer via spectroscopic ellipsometry, to support optical modeling of the multilayer TiO2/silica coating stack. The 'mesoporous silica' row is itself an internal reference/comparison sample within this table, included to show how the mesoporous TiO2 layer's properties differ from an otherwise-similar mesoporous silica coating.",
   "table_title": "Table S1: Effective refractive index, layer thickness and porosity values of the mesoporous TiO2 coatings, the compact silica barrier layers and the mesoporous silica reference coatings.",
   "columns": [
     {

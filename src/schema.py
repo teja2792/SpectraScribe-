@@ -257,7 +257,7 @@ TABLE_RECORD_SCHEMA = {
     "required": [
         "record_id", "doi", "source_location", "license", "citation",
         "source_type", "extraction_method", "curator", "retrieved_at_utc",
-        "table_title", "columns", "rows",
+        "table_title", "columns", "rows", "material_description", "measurement_purpose",
     ],
     "properties": {
         "record_id": {"type": "string"},
@@ -265,6 +265,16 @@ TABLE_RECORD_SCHEMA = {
         "source_location": {"type": "string"},  # e.g. "Table S1"
         "license": {"type": "string"},
         "citation": {"type": "string"},
+        # material_description/baseline_material/measurement_purpose: same
+        # requirement as RECORD_SCHEMA (spectral records) below, extended
+        # here to tables for the same reason -- a row of numbers is
+        # meaningless without knowing what sample it was measured on, what
+        # it's being compared against, and why the measurement was made.
+        # First applied to a table for this project's own Figure 7 (kinetics
+        # data: 11 curves across 2 panels, each a distinct TiO2/Cu2O sample).
+        "material_description": {"type": "string"},
+        "baseline_material": {"type": ["string", "null"]},
+        "measurement_purpose": {"type": "string"},
         "table_title": {"type": "string"},  # the table's own caption text
         "columns": {
             "type": "array",
@@ -319,6 +329,13 @@ def validate_table_record(record: dict) -> list:
     for key in TABLE_RECORD_SCHEMA["required"]:
         if key not in record or record[key] in (None, "", []):
             problems.append(f"missing required field: {key}")
+
+    if "baseline_material" not in record:
+        problems.append(
+            "record has no 'baseline_material' key -- set it to the comparison "
+            "sample/measurement if this table is comparative, or explicitly null "
+            "if it isn't. Don't omit the key."
+        )
 
     if record.get("source_type") not in [s.value for s in SourceType]:
         problems.append(f"invalid source_type: {record.get('source_type')!r}")

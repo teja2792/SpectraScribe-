@@ -77,8 +77,9 @@ def _find_region(manifest: dict, label: str) -> dict:
 
 
 def extract_table(doi: str, label: str, transcription_path: str, data_root: str,
+                   material_description: str, measurement_purpose: str, baseline_material,
                    extraction_method: str = ExtractionMethod.OCR_EXTRACTED_TABLE.value,
-                   overwrite: bool = False) -> dict:
+                   overwrite: bool = False, curve_label: str = None) -> dict:
     paper_id = paper_id_from_doi(doi)
     paper_dir = Path(data_root) / "papers" / paper_id
     manifest_path = paper_dir / "manifest.json"
@@ -89,8 +90,18 @@ def extract_table(doi: str, label: str, transcription_path: str, data_root: str,
         manifest = json.load(f)
 
     region = _find_region(manifest, label)
-    if region["kind"] != "table":
-        raise ValueError(f"{label!r} is a {region['kind']}, not a table -- wrong tool for this region.")
+    if region["kind"] not in ("table", "figure"):
+        raise ValueError(f"{label!r} is a {region['kind']}, not a table or figure -- wrong tool for this region.")
+    # A "figure" region ending up here (not extract_spectrum.py) means its
+    # content is fundamentally discrete/tabular, not a continuous trace worth
+    # pixel-digitizing -- e.g. this project's own Figure 7: sparse kinetics
+    # data (4-7 marker points per curve, straight lines drawn between them
+    # for visualization only). Forcing that through the curve digitizer would
+    # fabricate false precision between real measurement points, so it's
+    # transcribed as a table instead. curve_label follows extract_spectrum.py's
+    # same multi-series-per-region pattern (see its module docstring) so
+    # e.g. Figure 7's 11 curves across 2 panels get distinct, non-colliding
+    # record_ids/filenames instead of overwriting each other.
 
     citation_meta = manifest.get("citation_metadata")
     if not citation_meta:
@@ -107,7 +118,13 @@ def extract_table(doi: str, label: str, transcription_path: str, data_root: str,
 
     tables_dir = paper_dir / "tables"
     tables_dir.mkdir(parents=True, exist_ok=True)
-    safe_label = label.replace(" ", "_").replace(".", "")
+    label_slug = label.replace(" ", "_").replace(".", "")
+    curve_slug = None
+    if curve_label:
+        curve_slug = "".join(c if c.isalnum() else "_" for c in curve_label).strip("_")
+        while "__" in curve_slug:
+            curve_slug = curve_slug.replace("__", "_")
+    safe_label = f"{label_slug}_{curve_slug}" if curve_slug else label_slug
     out_path = tables_dir / f"{safe_label}.json"
     if out_path.exists() and not overwrite:
         raise FileExistsError(f"{out_path} already exists -- pass --overwrite to redo it.")
@@ -117,12 +134,18 @@ def extract_table(doi: str, label: str, transcription_path: str, data_root: str,
     if "columns" not in transcription or "rows" not in transcription:
         raise ValueError(f"{transcription_path} must have top-level 'columns' and 'rows' keys.")
 
+    baseline = None if (isinstance(baseline_material, str) and baseline_material.strip().lower() == "null") else baseline_material
+    source_location = f"{region['label']} ({curve_label})" if curve_label else region["label"]
+
     record = {
         "record_id": f"{paper_id}_{safe_label.lower()}",
         "doi": manifest["doi"],
-        "source_location": region["label"],
+        "source_location": source_location,
         "license": manifest["license"],
         "citation": citation_meta["citation"],
+        "material_description": material_description,
+        "baseline_material": baseline,
+        "measurement_purpose": measurement_purpose,
         "table_title": region["caption"],
         "columns": transcription["columns"],
         "rows": transcription["rows"],
@@ -147,9 +170,15 @@ def extract_table(doi: str, label: str, transcription_path: str, data_root: str,
     return record
 
 
-def mark_reviewed(doi: str, label: str, data_root: str) -> None:
+def mark_reviewed(doi: str, label: str, data_root: str, curve_label: str = None) -> None:
     paper_id = paper_id_from_doi(doi)
-    safe_label = label.replace(" ", "_").replace(".", "")
+    label_slug = label.replace(" ", "_").replace(".", "")
+    curve_slug = None
+    if curve_label:
+        curve_slug = "".join(c if c.isalnum() else "_" for c in curve_label).strip("_")
+        while "__" in curve_slug:
+            curve_slug = curve_slug.replace("__", "_")
+    safe_label = f"{label_slug}_{curve_slug}" if curve_slug else label_slug
     out_path = Path(data_root) / "papers" / paper_id / "tables" / f"{safe_label}.json"
     if not out_path.exists():
         raise FileNotFoundError(f"{out_path} doesn't exist -- run extract_table.py first.")
@@ -166,23 +195,33 @@ def main():
     parser.add_argument("--label", required=True, help='e.g. "Table S1" -- must match a table region in the manifest.')
     parser.add_argument("--transcription", help="Path to a {columns, rows} JSON transcription file.")
     parser.add_argument("--data-root", default="../data")
+    parser.add_argument("--material-description", help="What sample/material this table's data was measured on.")
+    parser.add_argument("--measurement-purpose", help="Why this measurement was made, in one sentence.")
+    parser.add_argument("--baseline-material", help="What this table is compared against, or the literal string 'null' if there isn't one.")
     parser.add_argument("--extraction-method", default=ExtractionMethod.OCR_EXTRACTED_TABLE.value,
                          choices=[e.value for e in ExtractionMethod])
     parser.add_argument("--overwrite", action="store_true")
     parser.add_argument("--mark-reviewed", action="store_true")
+    parser.add_argument("--curve-label", help='Which series/panel this run is for, e.g. "TiO2/Cu2O 60 min" -- '
+                                               'required when one figure/table region holds more than one '
+                                               'independent series. Appended to record_id/filenames/source_location '
+                                               'so series from the same region never collide.')
     args = parser.parse_args()
 
     if args.mark_reviewed:
-        mark_reviewed(args.doi, args.label, args.data_root)
+        mark_reviewed(args.doi, args.label, args.data_root, curve_label=args.curve_label)
         print(f"Marked {args.label!r} as self-reviewed.")
         return
 
     if not args.transcription:
         parser.error("--transcription is required unless --mark-reviewed is passed")
+    if not args.material_description or not args.measurement_purpose or not args.baseline_material:
+        parser.error("--material-description/--measurement-purpose/--baseline-material are required unless --mark-reviewed is passed")
 
     try:
         record = extract_table(args.doi, args.label, args.transcription, args.data_root,
-                                args.extraction_method, args.overwrite)
+                                args.material_description, args.measurement_purpose, args.baseline_material,
+                                args.extraction_method, args.overwrite, curve_label=args.curve_label)
     except (FileExistsError, FileNotFoundError, ValueError, RuntimeError) as e:
         print(f"[ERROR] {e}")
         raise SystemExit(1)
