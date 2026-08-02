@@ -16,6 +16,26 @@ validate_all.py with zero translation layer -- not a shared code
 dependency (SpectraVault is a separate, private repo), just a compatible
 file format crossing the repo boundary.
 
+One deliberate, documented exception: Modality.UV_VIS_TAUC ("UV-Vis
+Tauc") is a SpectraScribe-only enum value with no SpectraVault
+equivalent -- see its definition below for why a Tauc plot gets its own
+modality tag instead of being folded into plain "UV-Vis".
+
+Scope note (added after this project's first real paper extraction):
+SpectraScribe's goal is INTRINSIC MATERIAL PROPERTIES -- composition,
+structure, crystal phase, particle/film size and shape, optical bandgap,
+and similar -- not reaction or process PERFORMANCE metrics (photo-
+catalytic degradation rate, adsorption kinetics, and the like), because
+performance numbers are conditional on the exact test setup (light
+source, concentration, geometry) in a way a material property mostly
+isn't, and mixing the two under one modality/record shape would make
+cross-paper comparison misleading. Records that are genuinely reaction-
+performance data rather than material characterization (this project's
+own Figure 7: photocatalytic dye-degradation kinetics) are kept in the
+data -- already-extracted, reviewed work isn't thrown away -- but marked
+via the optional out_of_scope/out_of_scope_reason fields below so a
+material-properties query or export can exclude them by default.
+
 On top of that inherited shape, SpectraScribe adds fields SpectraVault
 never needed, because SpectraVault mostly downloads data a database
 already agreed to distribute in bulk, while every SpectraScribe record
@@ -51,6 +71,17 @@ class Modality(str, Enum):
     EXAFS = "EXAFS"
     XPS = "XPS"
     UV_VIS = "UV-Vis"
+    UV_VIS_TAUC = "UV-Vis Tauc"  # Tauc-transformed UV-Vis data ((alpha*hv)^n vs. hv, for bandgap
+                                  # extraction) is a materially different x/y representation of the
+                                  # same underlying measurement as plain "UV-Vis" (Absorbance/
+                                  # Transmittance vs. Wavelength) -- kept as a distinct modality value,
+                                  # not just a different x_axis/y_axis under the same "UV-Vis" tag, per
+                                  # explicit user request for specific, searchable modality names
+                                  # ("XAS, XANES, UV-Vis Tauc, etc") rather than lumping every UV-Vis-
+                                  # derived plot under one generic label. NOT claimed SpectraVault-
+                                  # compatible for this one value (see RECORD_SCHEMA's compatibility
+                                  # note above) -- same kind of deliberate, documented deviation as
+                                  # TABLE_RECORD_SCHEMA's material fields.
     RAMAN = "Raman"
     FTIR = "FTIR"
     PL = "PL"
@@ -166,6 +197,16 @@ RECORD_SCHEMA = {
         # --- Confidence rubric output (computed, not hand-entered) ---
         "confidence_score": {"type": ["number", "null"]},
         "confidence_breakdown": {"type": "object"},
+
+        # --- Scope flag (optional; absent/false means "in scope") ---
+        # See the module docstring's "Scope note" -- this project's goal is
+        # intrinsic material properties, not reaction/process performance.
+        # Set out_of_scope=true (with a reason) for a record that's genuine,
+        # reviewed data but falls outside that goal, so a material-
+        # properties query/export can filter it out by default without
+        # deleting real work.
+        "out_of_scope": {"type": "boolean"},
+        "out_of_scope_reason": {"type": ["string", "null"]},
     },
 }
 
@@ -300,6 +341,12 @@ TABLE_RECORD_SCHEMA = {
         "confidence_score": {"type": ["number", "null"]},
         "confidence_breakdown": {"type": "object"},
         "notes": {"type": "string"},
+        # Same scope flag as RECORD_SCHEMA -- see the module docstring's
+        # "Scope note". First real use: this project's own Figure 7 table
+        # records (photocatalytic degradation kinetics -- reaction
+        # performance, not material characterization).
+        "out_of_scope": {"type": "boolean"},
+        "out_of_scope_reason": {"type": ["string", "null"]},
     },
 }
 # Deliberately NOT claimed as SpectraVault-compatible, unlike RECORD_SCHEMA

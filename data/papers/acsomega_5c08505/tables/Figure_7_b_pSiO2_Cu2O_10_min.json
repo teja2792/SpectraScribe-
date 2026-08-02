@@ -63,5 +63,7 @@
     "peer_reviewed": 0.1,
     "open_access": 0.05,
     "cross_validated": 0.0
-  }
+  },
+  "out_of_scope": true,
+  "out_of_scope_reason": "Reaction/process performance (photocatalytic dye-degradation kinetics vs. irradiation time), not an intrinsic material property -- out of this project's stated scope (material composition, structure, size/shape/film properties). Kept in the dataset since the extraction was already done and reviewed, but excluded from material-property queries by default. See schema.py module docstring, 'Scope note'."
 }
