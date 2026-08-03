@@ -1,0 +1,98 @@
+{
+  "paper_id": "d3ra08965g",
+  "doi": "10.1039/d3ra08965g",
+  "license": "CC-BY-NC 4.0 (RSC Advances)",
+  "documents": {
+    "main": {
+      "pdf_path": "../data/papers/d3ra08965g/raw/d3ra08965g.pdf",
+      "n_pages": 9,
+      "doi_source": "provided"
+    }
+  },
+  "n_regions_detected": 5,
+  "n_figures": 4,
+  "n_tables": 1,
+  "n_low_confidence_regions": 0,
+  "regions": [
+    {
+      "kind": "figure",
+      "label": "Fig. 2",
+      "caption": "Fig. 2\n(a) XRD pattern of pure and Cs2Ag0.95Ga0.05BiBr6 halide double perovskite solar cell. (b) Crystallite Size and Dislocation Line Density of\nCs2Ag0.95Ga0.05BiBr6. (c) D-spacing, lattice parameter of pure and Cs2Ag0.95Ga0.05BiBr6. (d) Shows the volume for pure and substitution.",
+      "page_number": 4,
+      "region_bbox": [
+        54.935001373291016,
+        50.571014404296875,
+        540.3699951171875,
+        389.0698547363281
+      ],
+      "region_height_pts": 338.49884033203125,
+      "low_confidence": false,
+      "doc_type": "main",
+      "crop_path": "../data/papers/d3ra08965g/crops/main_page004_Fig_2.png"
+    },
+    {
+      "kind": "figure",
+      "label": "Fig. 3",
+      "caption": "Fig. 3\n(a) Eg of pure and Cs2Ag0.95Ga0.05BiBr6 \ufb01lms. (b) Refractive index, electronegativity, and extinction co-e\ufb03cient of pure and\nCs2Ag0.95Ga0.05BiBr6.",
+      "page_number": 5,
+      "region_bbox": [
+        55.95600128173828,
+        50.56999206542969,
+        539.4739990234375,
+        246.75160217285156
+      ],
+      "region_height_pts": 196.18161010742188,
+      "low_confidence": false,
+      "doc_type": "main",
+      "crop_path": "../data/papers/d3ra08965g/crops/main_page005_Fig_3.png"
+    },
+    {
+      "kind": "figure",
+      "label": "Fig. 4",
+      "caption": "Fig. 4\n(a) Shows the real part of 3. (b) Shows the imaginary part of 3 for pristine and Cs2Ag0.95Ga0.05BiBr6.",
+      "page_number": 6,
+      "region_bbox": [
+        54.935001373291016,
+        50.571014404296875,
+        540.3699951171875,
+        225.1659393310547
+      ],
+      "region_height_pts": 174.5949249267578,
+      "low_confidence": false,
+      "doc_type": "main",
+      "crop_path": "../data/papers/d3ra08965g/crops/main_page006_Fig_4.png"
+    },
+    {
+      "kind": "figure",
+      "label": "Fig. 5",
+      "caption": "Fig. 5\nJ\u2013V curve of pure and Ga substitution \ufb01lms.",
+      "page_number": 6,
+      "region_bbox": [
+        53.6879997253418,
+        262.8290100097656,
+        280.9010009765625,
+        456.9122009277344
+      ],
+      "region_height_pts": 194.08319091796875,
+      "low_confidence": false,
+      "doc_type": "main",
+      "crop_path": "../data/papers/d3ra08965g/crops/main_page006_Fig_5.png"
+    },
+    {
+      "kind": "table",
+      "label": "Table 1",
+      "caption": "Table 1\nSolar cell parameters of pure and Cs2Ag0.95Ga0.05BiBr6",
+      "page_number": 6,
+      "region_bbox": [
+        42.51969909667969,
+        504.106201171875,
+        271.24847412109375,
+        590.8810424804688
+      ],
+      "region_height_pts": 86.77484130859375,
+      "low_confidence": false,
+      "doc_type": "main",
+      "crop_path": "../data/papers/d3ra08965g/crops/main_page006_Table_1.png"
+    }
+  ]
+}

@@ -48,7 +48,7 @@ from pathlib import Path
 import fitz  # PyMuPDF
 
 
-CAPTION_RE = re.compile(r"^(Figure|Fig\.?|Table)\s+(S?\d+)[.:]\s*(.*)", re.IGNORECASE | re.DOTALL)
+CAPTION_RE = re.compile(r"^(Figure|Fig\.?|Table)\s+(S?\d+)(?:[.:]\s*|(?!\x20))(.*)", re.IGNORECASE | re.DOTALL)
 # S-prefix (e.g. "Figure S2", "Table S1") is standard numbering for
 # Supporting Information documents -- found only after running against a
 # real paper's SI PDF, where the original digit-only pattern silently
@@ -59,15 +59,45 @@ CAPTION_RE = re.compile(r"^(Figure|Fig\.?|Table)\s+(S?\d+)[.:]\s*(.*)", re.IGNOR
 # found nothing in the SI would have been the most dangerous kind of bug
 # here -- not a crash, just quietly missing data.
 #
-# The [.:] after the number is REQUIRED, not optional -- also found by
-# hitting it: an in-text body paragraph beginning "Figure S1 illustrates
-# the experimental steps..." starts its own block with the exact same
-# words as the real caption "Figure S1. Sample preparation: ..." but has
-# no punctuation immediately after the number, since it's mid-sentence.
-# Making the period/colon mandatory is what distinguishes a genuine
-# caption from an in-text reference that happens to open a paragraph --
-# without it, both matched, produced two regions with the identical
-# label, and collided on the same output filename.
+# The number must be followed by EITHER "[.:]\s*" OR be directly abutted
+# by a non-space character (?=\S) -- not by bare optional whitespace.
+# This second branch was added after hitting an RSC Advances paper
+# (10.1039/d3ra08965g) where every real caption is typeset with zero gap
+# between the figure number and its text, e.g. "Fig. 1Geometry of solar
+# cell." and "Fig. 5J-V curve of pure and Ga substitution films." -- no
+# period, colon, or space at all, which the original punctuation-only
+# rule matched zero times across the whole document (0 regions detected
+# in a 9-page paper with at least 5 real figures).
+#
+# The obvious naive fix -- just making the separator "any amount of
+# whitespace, including none" -- was tried first and rejected: this
+# exact paper also contains an in-text sentence "Fig. 5 illustrates the
+# J-V curves for the device fabricated with Ga substitution..." on the
+# page BEFORE the real Fig. 5 caption. That sentence has a single space
+# after "5", and a bare \s* would happily match it too, producing two
+# competing "Fig. 5" regions (the dedup step in detect_regions() would
+# then pick whichever has the larger bbox, which happens to still be
+# correct here, but only by luck of the in-text sentence not sitting
+# next to a big block of content). The (?=\S) lookahead is stricter than
+# that: it requires the character immediately after the number to be
+# non-whitespace, i.e. no gap at all. "5 illustrates" has a space right
+# after "5" and fails this lookahead (correctly rejected); "5J-V" has no
+# gap and passes (correctly accepted). This preserves the original
+# in-text-reference rejection this regex was built for (see the
+# "Figure S1 illustrates the experimental steps..." example below) while
+# also accepting RSC's tightly-kerned caption style.
+#
+# The [.:] branch after the number is REQUIRED (not just optional
+# whitespace) for the same original reason -- also found by hitting it:
+# an in-text body paragraph beginning "Figure S1 illustrates the
+# experimental steps..." starts its own block with the exact same words
+# as the real caption "Figure S1. Sample preparation: ..." but has a
+# space (not punctuation) immediately after the number, since it's
+# mid-sentence. Making the period/colon (or true zero-gap) mandatory is
+# what distinguishes a genuine caption from an in-text reference that
+# happens to open a paragraph -- without it, both matched, produced two
+# regions with the identical label, and collided on the same output
+# filename.
 DOI_RE = re.compile(r"\b10\.\d{4,9}/[^\s\"<>]+")
 
 
@@ -175,6 +205,22 @@ def detect_regions(doc: "fitz.Document") -> list:
         distinguish one figure's content from the next; tightly packed
         layouts will over- or under-crop. Each region's bbox is recorded
         so a human reviewing the crop can immediately see if it's wrong.
+      - A short caption (e.g. a one-line "Fig. 1 <short title>.") whose
+        bbox sits close enough to the bottom of the preceding body
+        paragraph can get silently swallowed INTO that paragraph's block
+        by PyMuPDF's own "blocks" grouping mode -- found on
+        10.1039/d3ra08965g's Fig. 1 ("Fig. 1Geometry of solar cell."),
+        whose caption bbox (y0=719.5, y1=727.4) sits inside the
+        preceding paragraph block's bbox (y1=727.4 too). The merged
+        block's text starts with the paragraph's own words, never with
+        "Fig.", so it never reaches CAPTION_RE at all -- this figure is
+        silently absent from detect_regions()'s output rather than
+        flagged low-confidence. Cross-checked against the paper's own
+        page count and known figure numbers (a 9-page paper citing up to
+        "Fig. 5" should produce 5 figure regions; this pipeline currently
+        finds 4) rather than trusted at face value -- see NOTES for the
+        follow-up (switch to get_text("dict") block granularity, which
+        does not merge this case).
 
     Fixed after hitting each on a real paper, not anticipated in advance:
       (1) PyMuPDF's get_text("blocks") order follows content-stream
