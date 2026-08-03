@@ -94,5 +94,26 @@
       "doc_type": "main",
       "crop_path": "../data/papers/d3ra08965g/crops/main_page006_Table_1.png"
     }
-  ]
+  ],
+  "citation_metadata": {
+    "source": "hand-entered from PDF first page + verified via WebSearch (CrossRef unreachable from sandbox; RSC's layout doesn't match the ACS 'Cite This:' PDF-fallback parser)",
+    "title": "Bandgap reduction and efficiency enhancement in Cs2AgBiBr6 double perovskite solar cells through gallium substitution",
+    "authors": [
+      "Ihtisham-ul-haq",
+      "M. I. Khan",
+      "Asad Ullah",
+      "Ali Mujtaba",
+      "Badriah S. Almutairi",
+      "Wajeehah Shahid",
+      "Asghar Ali",
+      "Jeong Ryeol Choi"
+    ],
+    "journal": "RSC Advances",
+    "year": 2024,
+    "volume": "14",
+    "pages": "5440-5448",
+    "citation": "Ihtisham-ul-haq, M. I. Khan, Asad Ullah, Ali Mujtaba, Badriah S. Almutairi, Wajeehah Shahid, Asghar Ali, Jeong Ryeol Choi. Bandgap reduction and efficiency enhancement in Cs2AgBiBr6 double perovskite solar cells through gallium substitution. RSC Advances 2024, 14, 5440-5448. https://doi.org/10.1039/d3ra08965g",
+    "fetched_at_utc": "2026-08-03T20:27:13.637865+00:00",
+    "metadata_reviewed": true
+  }
 }

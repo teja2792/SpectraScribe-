@@ -190,5 +190,26 @@
       "doc_type": "main",
       "crop_path": "../data/papers/acsomega_2c04226/crops/main_page008_Figure_9.png"
     }
-  ]
+  ],
+  "citation_metadata": {
+    "source": "hand-corrected: fetch_metadata.py's ACS PDF-fallback parser mis-split the title/author boundary on this PDF (merged the title's tail into the author list) -- CrossRef was unreachable from the sandbox so the primary path never ran. Verified directly against this PDF's own first-page text and cross-checked earlier in this session via WebSearch.",
+    "title": "Synthesis and Characterization of Novel Core-Shell ZnO@SiO2 Nanoparticles and Application in Antibiotic and Bacteria Removal",
+    "authors": [
+      "Tien-Duc Pham",
+      "Thi-Thuy-Trang Truong",
+      "Ha-Linh Nguyen",
+      "Ly-Bao-Long Hoang",
+      "Viet-Phuong Bui",
+      "Thi-Tra-My Tran",
+      "Thi-Diu Dinh",
+      "Thi-Dung Le"
+    ],
+    "journal": "ACS Omega",
+    "year": 2022,
+    "volume": "7",
+    "pages": "42073-42082",
+    "citation": "Tien-Duc Pham, Thi-Thuy-Trang Truong, Ha-Linh Nguyen, Ly-Bao-Long Hoang, Viet-Phuong Bui, Thi-Tra-My Tran, Thi-Diu Dinh, Thi-Dung Le. Synthesis and Characterization of Novel Core-Shell ZnO@SiO2 Nanoparticles and Application in Antibiotic and Bacteria Removal. ACS Omega 2022, 7, 42073-42082. https://doi.org/10.1021/acsomega.2c04226",
+    "fetched_at_utc": "2026-08-03T20:27:13.637865+00:00",
+    "metadata_reviewed": true
+  }
 }
