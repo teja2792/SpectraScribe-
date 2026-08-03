@@ -1,0 +1,194 @@
+{
+  "paper_id": "acsomega_2c04226",
+  "doi": "10.1021/acsomega.2c04226",
+  "license": "CC-BY-NC-ND 4.0 (ACS Omega)",
+  "documents": {
+    "main": {
+      "pdf_path": "../data/papers/acsomega_2c04226/raw/ao2c04226.pdf",
+      "n_pages": 10,
+      "doi_source": "provided"
+    }
+  },
+  "n_regions_detected": 11,
+  "n_figures": 9,
+  "n_tables": 2,
+  "n_low_confidence_regions": 1,
+  "regions": [
+    {
+      "kind": "figure",
+      "label": "Figure 1",
+      "caption": "Figure 1. Photos of synthesized ZnO@SiO2 based on rice husk before calcination (A) and after calcination (B). (Photograph courtesy of Tien-Duc\nPham. Copyright 2022).",
+      "page_number": 2,
+      "region_bbox": [
+        152.95700073242188,
+        60.43498992919922,
+        453.88299560546875,
+        188.6949920654297
+      ],
+      "region_height_pts": 128.26000213623047,
+      "low_confidence": false,
+      "doc_type": "main",
+      "crop_path": "../data/papers/acsomega_2c04226/crops/main_page002_Figure_1.png"
+    },
+    {
+      "kind": "figure",
+      "label": "Figure 2",
+      "caption": "Figure 2. XRD pattern (A) and the EDX spectrum (B) of synthesized ZnO@SiO2.",
+      "page_number": 3,
+      "region_bbox": [
+        52.44089889526367,
+        60.43499755859375,
+        554.5128784179688,
+        662.6480102539062
+      ],
+      "region_height_pts": 602.2130126953125,
+      "low_confidence": false,
+      "doc_type": "main",
+      "crop_path": "../data/papers/acsomega_2c04226/crops/main_page003_Figure_2.png"
+    },
+    {
+      "kind": "figure",
+      "label": "Figure 3",
+      "caption": "Figure 3. FTIR spectra (A), TEM image (B), and photoluminescence spectra (C) of the synthesized ZnO@SiO2 material.",
+      "page_number": 4,
+      "region_bbox": [
+        138.84100341796875,
+        60.43499755859375,
+        468.1130065917969,
+        695.3030395507812
+      ],
+      "region_height_pts": 634.8680419921875,
+      "low_confidence": false,
+      "doc_type": "main",
+      "crop_path": "../data/papers/acsomega_2c04226/crops/main_page004_Figure_3.png"
+    },
+    {
+      "kind": "figure",
+      "label": "Figure 5",
+      "caption": "Figure 5. Effect of pH (A), contact time (B), and adsorbent dosage (C)\non AMX adsorption (removal) using ZnO@SiO2 (Ci, AMX 10 mg/L).\nError bars show the measurement range of two replicates. The optimum dosage of ZnO@SiO2 is another important\nfactor influenced by net material charge density as well as the\nspecific surface area. For AMX adsorption, the total charge\ndensity is more important because almost all antibiotics are\ncharged molecules. As can be seen in Figure 5C, AMX removal\nusing ZnO@SiO2 grew sharply when increasing the adsorbent\nfrom 1 to 25 mg/mL. Although the adsorbent dosage for\nantibiotic removal using modified nanosilica rice husk was lower\nin our case,16\u221218 adsorption capacity for AMX was much higher\nthan using rice husk without nanosilica as well as the ZnO\ncomposite. Therefore, the optimum ZnO@SiO2 dosage for\nAMX removal was 25 mg/mL. 1000 mg/L. The linear fits and parameters for AMX adsorption\nisotherms on ZnO@SiO2 as fitted to Langmuir and Freundlich\nmodels are shown in Table 1. As can be seen in Table 1, the Freundlich model fits the data\nwell, while the Langmuir model poorly correlates with our data.\nAs nF is greater than 1, AMX can apparently form multilayers on\nthe ZnO@SiO2 surface. Table 1 also indicates that maximum adsorption capacity\ndecreased by a factor of 4.5 when increasing the KCl\nconcentration from 0.1 to 10 mM. This trend is due to a\ndecrease in electrostatic interaction between anionic AMX and\nthe positively charged ZnO@SiO2 surface. A maximum\nadsorption capacity of 52 mg/g is much higher than common 3.3. Adsorption Isotherms of AMX on ZnO@SiO2.\nAdsorption isotherms of AMX on ZnO@SiO2 were determined\nat different KCl concentrations to evaluate the effect of ionic\nstrength. The AMX concentrations were in the range of 2.5\u2212",
+      "page_number": 6,
+      "region_bbox": [
+        0,
+        505.5933837890625,
+        607.4080200195312,
+        571.7689819335938
+      ],
+      "region_height_pts": 66.17559814453125,
+      "low_confidence": false,
+      "doc_type": "main",
+      "crop_path": "../data/papers/acsomega_2c04226/crops/main_page006_Figure_5.png"
+    },
+    {
+      "kind": "figure",
+      "label": "Figure 4",
+      "caption": "Figure 4. Adsorption\u2212desorption of N2 on ZnO@SiO2 nanoparticles\n(A). The X-ray photoelectron spectra of ZnO@SiO2 nanoparticles (B).\nThe \u03b6-potential of ZnO@SiO2 nanoparticles as a function of pH at 1\nmM KCl (C).",
+      "page_number": 6,
+      "region_bbox": [
+        81.46769714355469,
+        60.43499755859375,
+        261.46771240234375,
+        465.95599365234375
+      ],
+      "region_height_pts": 405.52099609375,
+      "low_confidence": false,
+      "doc_type": "main",
+      "crop_path": "../data/papers/acsomega_2c04226/crops/main_page006_Figure_4.png"
+    },
+    {
+      "kind": "table",
+      "label": "Table 1",
+      "caption": "Table 1. Parameters for Amoxicillin (AMX) Adsorption\nIsotherms on ZnO@SiO2 at Different Ionic Strengths Fitted\nby Langmuir and Freundlich Models",
+      "page_number": 7,
+      "region_bbox": [
+        51.47710037231445,
+        92.68101501464844,
+        291.48199462890625,
+        127.86074829101562
+      ],
+      "region_height_pts": 35.17973327636719,
+      "low_confidence": false,
+      "doc_type": "main",
+      "crop_path": "../data/papers/acsomega_2c04226/crops/main_page007_Table_1.png"
+    },
+    {
+      "kind": "figure",
+      "label": "Figure 7",
+      "caption": "Figure 7. \u03b6-potential of ZnO@SiO2 nanoparticles before and after\nAMX adsorption at 1 mM KCl (pH 7.0). 3.4. Adsorption Mechanism of AMX on ZnO@SiO2. In\nthis section, the adsorption mechanism of AMX on ZnO@SiO2\nis proposed based on the change in binding energy, TOC\nmeasurements, Raman spectroscopy, and the change in the\nsurface charge monitored by \u03b6-potential measurement and the\nAMX adsorption isotherms on ZnO@SiO2. After AMX\nadsorption, TOC concentrations decreased compared with the\ninitial solution (not shown in detail). It implies that a high\namount of AMX occurred on the ZnO@SiO2 surface. adsorption with the anionic form of AMX (at pH 8.0 > pKa\nd2), a\nsignificant decrease was observed as the \u03b6-potential was reduced\nto 1.63 mV. This result agreed well with the pH influence on\nAMX removal (Section 3.2). The surface charge change was in\ngood agreement with adsorption isotherms and DR-UV\u2212vis\nresults. Thus, we confirm that the electrostatic attraction\nbetween the negative AMX species and the positively charged\nZnO@SiO2 surface mainly governs adsorption. We also compare with standard TiO2 nanoparticles to\nemphasize the advantages of ZnO@SiO2. The DR-UV\u2212vis spectra of different nanomaterials shown in\nFigure 6 have strong absorption spectra from 200 to 400 nm.\nThe intensity of ZnO@SiO2 is higher than TiO2 due to the\ndifference in photo energies. The band-gap energies (Egs) of\nZnO@SiO2 and TiO2 were found to be 3.15 and 3.06 eV,\nrespectively. The differences in Eg are due to strong sp\u2212d\nexchange interaction between the band electrons of ZnO and\nTiO2.43 Interestingly, after AMX adsorption, the characteristics\nof ZnO@SiO2 changed insignificantly, indicating that adsorp-\ntion is dominant. Raman spectra of ZnO@SiO2 could not be\nobtained, so the photocatalyst is rather low compared with the\nTiO2 material. 3.5. Stability and Comparison of ZnO@SiO2 and Other\nAdsorbents for AMX Removal. Section 3.3 indicates that the\nmaximum adsorption capacity reached 52 mg/g, while the\nremoval efficiency of AMX using ZnO@SiO2 was about 90%.\nThis adsorption process has previously been investigated. Table\n2 shows that the adsorption capacity of AMX using ZnO@SiO2\nis the highest compared with other adsorbents. These results\nagain show that ZnO@SiO2 is an excellent adsorbent for AMX\nremoval from an aqueous solution. To demonstrate the stability of ZnO@SiO2, the reuse\npotential of the material was conducted. Figure 8 shows that\nthe AMX removal was slightly decreased, but the removal was\nstill higher than 74%. It implies that ZnO@SiO2 is a reusable\nmaterial with high performance. The charging behavior of various adsorbents during antibiotic\nadsorption has been evaluated by \u03b6-potential measure-\nments,17\u221221,28 but the change in the surface charge of ZnO@\nSiO2 before and after AMX adsorption has not previously been\nevaluated. Figure 7 shows that the \u03b6-potential of ZnO@SiO2\nusing 1 mM KCl at pH 7 was positive at 8.32 mV. However, after 3.6. Removal of E. coli Bacteria Using ZnO@SiO2. To\ndemonstrate bacterial removal efficiency, E. coli growth was\ncompared among 0.9% NaCl, ZnO, and a medium containing\nZnO@SiO2.",
+      "page_number": 7,
+      "region_bbox": [
+        0,
+        190.51341247558594,
+        607.4080200195312,
+        249.50201416015625
+      ],
+      "region_height_pts": 58.98860168457031,
+      "low_confidence": false,
+      "doc_type": "main",
+      "crop_path": "../data/papers/acsomega_2c04226/crops/main_page007_Figure_7.png"
+    },
+    {
+      "kind": "figure",
+      "label": "Figure 6",
+      "caption": "Figure 6. DR-UV\u2212vis spectra of TiO2 and ZnO@SiO2 before and after AMX adsorption.",
+      "page_number": 7,
+      "region_bbox": [
+        152.95700073242188,
+        601.5125122070312,
+        453.88299560546875,
+        745.22509765625
+      ],
+      "region_height_pts": 143.71258544921875,
+      "low_confidence": false,
+      "doc_type": "main",
+      "crop_path": "../data/papers/acsomega_2c04226/crops/main_page007_Figure_6.png"
+    },
+    {
+      "kind": "table",
+      "label": "Table 2",
+      "caption": "Table 2. Adsorption Capacity and the Removal Efficiency of\nAmoxicillin (AMX) Using ZnO@SiO2 Based on Rice Husk\nand Other Absorbentsa",
+      "page_number": 8,
+      "region_bbox": [
+        51.47710037231445,
+        92.68101501464844,
+        291.4421081542969,
+        375.2149963378906
+      ],
+      "region_height_pts": 282.5339813232422,
+      "low_confidence": false,
+      "doc_type": "main",
+      "crop_path": "../data/papers/acsomega_2c04226/crops/main_page008_Table_2.png"
+    },
+    {
+      "kind": "figure",
+      "label": "Figure 8",
+      "caption": "Figure 8. Reuse potential of ZnO@SiO2 nanoparticles after three\nregeneration. Tien-Duc Pham \u2212Faculty of Chemistry, University of Science, Vietnam National University, Hanoi, Hanoi 100000,\nVietnam;\norcid.org/0000-0002-9087-7417;\nEmail: tienduchphn@gmail.com, tienducpham@\nhus.edu.vn, ducpt@vnu.edu.vn",
+      "page_number": 8,
+      "region_bbox": [
+        0,
+        370.24798583984375,
+        607.4080200195312,
+        375.2149963378906
+      ],
+      "region_height_pts": 4.967010498046875,
+      "low_confidence": true,
+      "doc_type": "main",
+      "crop_path": "../data/papers/acsomega_2c04226/crops/main_page008_Figure_8.png"
+    },
+    {
+      "kind": "figure",
+      "label": "Figure 9",
+      "caption": "Figure 9. Test results of antibacterial activities for E. coli. The effect of the dosage (A) using ZnO@SiO2 nanoparticles. The comparative antibacterial\nactivities using ZnO and ZnO@SiO2 (B). (Photograph courtesy of Thi-Thuy-Trang Truong. Copyright 2022).",
+      "page_number": 8,
+      "region_bbox": [
+        308.385009765625,
+        586.8178100585938,
+        483.489013671875,
+        735.8384399414062
+      ],
+      "region_height_pts": 149.0206298828125,
+      "low_confidence": false,
+      "doc_type": "main",
+      "crop_path": "../data/papers/acsomega_2c04226/crops/main_page008_Figure_9.png"
+    }
+  ]
+}
