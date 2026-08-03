@@ -37,6 +37,14 @@ region = next(r for r in manifest["regions"] if r["label"] == "Figure S4")
 rgb = np.array(Image.open(CROP).convert("RGB"))
 r, g, b = rgb[..., 0].astype(int), rgb[..., 1].astype(int), rgb[..., 2].astype(int)
 red_mask = (r > 180) & (g < 120) & (b < 120)
+# Sub-pixel weight for the centroid below -- how much MORE red than
+# green/blue each pixel is, not just whether it passed the (r>180)&
+# (g<120)&(b<120) cutoff. Same purpose as trace_curve_columns()'s weight
+# array in extract_spectrum.py (see that function's docstring); applied
+# by hand here since this script predates that refactor and uses a
+# different mask construction (RGB channel comparison, not
+# _color_distance_mask) that doesn't produce the same weight signal.
+red_weight = np.clip(r - np.maximum(g, b), 0, None).astype(np.float64)
 
 x_ticks = [942.0, 1071.0, 1200.0, 1328.0, 1457.0, 1585.0, 1714.0]  # -> 1200,1000,800,600,400,200,0 eV
 y_ticks = [111.0, 207.0, 303.0, 399.0, 495.0, 591.5, 688.0, 784.0]  # -> 1400000..0 cps, step 200000
@@ -44,7 +52,7 @@ x_slope, x_intercept, x_resid = _linear_calibration(x_ticks, 1200, 0, 200)
 y_slope, y_intercept, y_resid = _linear_calibration(y_ticks, 1400000, 0, 200000)
 
 curve_mask = _isolate_curve_component(red_mask)
-x_values, y_values, thick = [], [], []
+x_values, y_values, thick, is_peak_list = [], [], [], []
 last_row = None
 n_corrected = 0
 for col in range(curve_mask.shape[1]):
@@ -52,23 +60,47 @@ for col in range(curve_mask.shape[1]):
     if len(rows) == 0:
         continue
     span = rows.max() - rows.min()
-    if span > NEAR_VERTICAL_SPAN_PX:
+    is_peak = span > NEAR_VERTICAL_SPAN_PX
+    if is_peak:
         if last_row is None or abs(rows.min() - last_row) <= abs(rows.max() - last_row):
             pr = float(rows.min())
         else:
             pr = float(rows.max())
         n_corrected += 1
     else:
-        pr = rows.mean()
+        w = red_weight[rows, col]
+        pr = float(np.average(rows, weights=w)) if w.sum() > 0 else float(rows.mean())
     last_row = pr
     x_values.append(x_slope * col + x_intercept)
     y_values.append(y_slope * pr + y_intercept)
-    thick.append(0.0 if span > NEAR_VERTICAL_SPAN_PX else span * abs(y_slope))
+    thick.append(0.0 if is_peak else span * abs(y_slope))
+    is_peak_list.append(is_peak)
 
-err = float(y_resid + (np.mean(thick) / 2 if thick else 0))
+# Light median de-noising (non-peak columns only) -- same technique as
+# trace_curve_columns() in extract_spectrum.py; see that function's
+# docstring for why. Negligible effect here in absolute terms (XPS
+# intensities span hundreds of thousands of cps, so a few cps of pixel
+# jitter is not the dominant error source the way it was for this
+# project's thin, nearly-flat UV-Vis baseline curves), but applied for
+# consistency rather than leaving one modality unfixed.
+y_arr = np.array(y_values)
+is_peak_arr = np.array(is_peak_list)
+smooth_window = 9
+if len(y_arr) >= smooth_window and not is_peak_arr.all():
+    half = smooth_window // 2
+    padded = np.pad(y_arr, half, mode="edge")
+    windows = np.lib.stride_tricks.sliding_window_view(padded, smooth_window)
+    y_median = np.median(windows, axis=1)
+    jitter_std = float(np.std((y_arr - y_median)[~is_peak_arr])) if (~is_peak_arr).any() else 0.0
+    y_values = np.where(is_peak_arr, y_arr, y_median).tolist()
+else:
+    jitter_std = 0.0
+
+err = float(y_resid + (np.mean(thick) / 2 if thick else 0) + jitter_std)
 diag = {"n_x_ticks_found": len(x_ticks), "n_y_ticks_found": len(y_ticks),
         "x_calibration_residual_std": x_resid, "y_calibration_residual_std": y_resid,
         "n_curve_points": len(x_values), "n_near_vertical_columns_corrected": n_corrected,
+        "pixel_jitter_std_removed_by_smoothing": jitter_std,
         "border_note": "open-style axes (no top/right border) -- see script docstring"}
 
 # overlay

@@ -24,7 +24,7 @@ from pathlib import Path
 sys.path.insert(0, "/sessions/elegant-happy-euler/mnt/CatalysisAI/SpectraScribe-/src")
 from extract_spectrum import (_isolate_curve_component, _linear_calibration, write_overlay,
                                CURVE_DARK_THRESHOLD, BORDER_SEARCH_MARGIN, NEAR_VERTICAL_SPAN_PX,
-                               MIN_CURVE_SEGMENT_PX)
+                               MIN_CURVE_SEGMENT_PX, trace_curve_columns)
 from schema import Modality, SourceType, ExtractionMethod, ReviewStatus, compute_confidence_score, validate_record
 import numpy as np
 from scipy import ndimage
@@ -48,6 +48,7 @@ def digitize_panel(panel, border, x_ticks, y_ticks, x_first, x_last, y_first, y_
     x_slope, x_intercept, x_resid = _linear_calibration(x_ticks, x_first, x_last, x_tick_step)
     y_slope, y_intercept, y_resid = _linear_calibration(y_ticks, y_first, y_last, y_tick_step)
     ink = gray < CURVE_DARK_THRESHOLD
+    weight = np.clip(CURVE_DARK_THRESHOLD - gray.astype(np.float64), 0.0, None)
     # This figure's gridlines (gray=102) are darker than CURVE_DARK_THRESHOLD=180, so they get
     # matched as "curve ink" -- a full-plot-width horizontal gridline then passes
     # MIN_CURVE_SEGMENT_PX's width filter just like the real curve does, and _isolate_curve_component
@@ -72,8 +73,11 @@ def digitize_panel(panel, border, x_ticks, y_ticks, x_first, x_last, y_first, y_
     for gy in y_ticks[:-1]:
         r = int(round(gy))
         ink[max(0, r - 1):r + 2, :] = False
+        weight[max(0, r - 1):r + 2, :] = 0.0
     interior = ink[top + BORDER_SEARCH_MARGIN: bottom - BORDER_SEARCH_MARGIN,
                     left + BORDER_SEARCH_MARGIN: right - BORDER_SEARCH_MARGIN]
+    weight_interior = weight[top + BORDER_SEARCH_MARGIN: bottom - BORDER_SEARCH_MARGIN,
+                              left + BORDER_SEARCH_MARGIN: right - BORDER_SEARCH_MARGIN]
     # Panel (b)'s steep near-bandgap rising edge crosses ~12 closely-spaced gridlines (every
     # 5 y-units, ~37.7px apart) in a narrow x-range. Because the curve is near-VERTICAL there,
     # each 3px gridline-exclusion band (above) doesn't just nick the curve -- it cuts clean
@@ -103,34 +107,18 @@ def digitize_panel(panel, border, x_ticks, y_ticks, x_first, x_last, y_first, y_
             continue
         if cols.max() - cols.min() >= MIN_CURVE_SEGMENT_PX:
             curve_mask |= comp & interior
-    x_values, y_values, thick = [], [], []
-    last_row = None
-    n_corrected = 0
-    for col in range(curve_mask.shape[1]):
-        rows = np.where(curve_mask[:, col])[0]
-        if len(rows) == 0:
-            continue
-        span = rows.max() - rows.min()
-        if span > NEAR_VERTICAL_SPAN_PX:
-            if last_row is None or abs(rows.min() - last_row) <= abs(rows.max() - last_row):
-                pr = float(rows.min())
-            else:
-                pr = float(rows.max())
-            n_corrected += 1
-        else:
-            pr = rows.mean()
-        last_row = pr
-        pr_px = pr + top + BORDER_SEARCH_MARGIN
-        pc_px = col + left + BORDER_SEARCH_MARGIN
-        x_values.append(x_slope * pc_px + x_intercept)
-        y_values.append(y_slope * pr_px + y_intercept)
-        thick.append(0.0 if span > NEAR_VERTICAL_SPAN_PX else span * abs(y_slope))
-    err = float(y_resid + (np.mean(thick) / 2 if thick else 0))
+    # Shared tracer (near-vertical-peak fix, sub-pixel weighted centroid,
+    # median de-noising) -- see trace_curve_columns()'s docstring in
+    # extract_spectrum.py.
+    trace = trace_curve_columns(curve_mask, weight_interior, top, left, x_slope, x_intercept,
+                                 y_slope, y_intercept, y_resid, x_first, x_last)
+    x_values, y_values = trace["x_values"], trace["y_values"]
     diag = {"n_x_ticks_used": len(x_ticks), "n_y_ticks_used": len(y_ticks),
             "x_calibration_residual_std": x_resid, "y_calibration_residual_std": y_resid,
-            "n_curve_points": len(x_values), "n_near_vertical_columns_corrected": n_corrected,
+            **trace["diagnostics"],
             "border_box_px": {"top": top, "bottom": bottom, "left": left, "right": right}}
-    d = {"x_values": x_values, "y_values": y_values, "digitization_error_estimate": err,
+    d = {"x_values": x_values, "y_values": y_values,
+         "digitization_error_estimate": trace["digitization_error_estimate"],
          "diagnostics": diag, "_curve_mask": curve_mask, "_border": (top, bottom, left, right)}
     overlay_path = str(SPECTRA_DIR / f"Figure_S10{panel}_overlay.png")
     write_overlay(path, d, overlay_path)

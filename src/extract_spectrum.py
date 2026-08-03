@@ -339,6 +339,129 @@ def _color_distance_mask(rgb: np.ndarray, target_color: tuple, tolerance: float)
     return dist <= tolerance
 
 
+def trace_curve_columns(curve_mask: np.ndarray, weight_interior: np.ndarray, top: int, left: int,
+                         x_slope: float, x_intercept: float, y_slope: float, y_intercept: float,
+                         y_resid: float, x_first_tick: float, x_last_tick: float,
+                         curve_color=None, color_tolerance: float = 45.0) -> dict:
+    """The actual per-column pixel-path-to-(x,y) tracer, factored out of
+    digitize() so every caller gets identical behavior instead of five
+    copies of the same loop silently drifting apart -- this project spent
+    real time re-finding and re-fixing the SAME bugs (near-vertical peak
+    understatement, pixel-quantization zigzag on thin flat lines) in
+    duplicated trace loops across extract_figure3_panels.py,
+    extract_figureS10.py, and extract_figureS13_blue.py before this was
+    pulled out. Any future fix belongs here, once, not in each script.
+
+    Three things happen per column, in order:
+
+    1. NEAR-VERTICAL CORRECTION -- a column whose matched-ink rows span
+       more than NEAR_VERTICAL_SPAN_PX is a steep curve edge (a sharp
+       peak); a plain mean would land in mid-air between the peak tip and
+       the baseline, understating peak height by up to 30% (caught on
+       this project's real Figure S4 XPS survey). Picks whichever end of
+       the pixel run continues from the previous point instead.
+
+    2. SUB-PIXEL WEIGHTED CENTROID (non-peak columns only) -- a plain
+       mean of whichever rows happened to cross a hard darkness/color
+       threshold jumps by a whole pixel depending on exactly where a
+       thin anti-aliased line sits relative to the pixel grid. Weighting
+       each candidate row by its own darkness/color-match strength (not
+       just pass/fail) recovers the sub-pixel line position instead.
+
+    3. LIGHT MEDIAN DE-NOISING (non-peak columns only) -- even after (2),
+       real PNG/PDF rasterization still leaves some +/-1px column-to-
+       column jitter, invisible on the full source image's overlay dots
+       but a visible jagged staircase once the digitized curve is
+       plotted on its own axes -- especially damning for a thin, nearly-
+       FLAT curve where the true signal is smaller than that jitter
+       (caught for real on this project's Figure 6/S13 bare-glass-
+       substrate transmittance curves, physically flat to a fraction of
+       a percent, traced as a visible zigzag). A small rolling MEDIAN
+       (not mean, which would blur a genuine step) removes it without
+       inventing curve shape that isn't there. Applied only where
+       is_peak is False -- a real peak's tip is exactly where a median
+       filter would blunt it, and step (1) already exists specifically
+       to get those points right. The jitter actually removed is folded
+       into digitization_error_estimate rather than discarded, so real
+       pixel-level uncertainty a curve like this carries is still
+       visible in the reported number instead of implying false
+       precision just because the plotted line looks smooth now.
+
+    Also reports x_range_coverage_fraction / x_span_covered vs
+    x_span_requested -- how much of the requested x-axis range actually
+    has a traced point at all. A curve occluded by another, differently-
+    colored curve drawn on top of it for part of its width (this
+    project's real Figure 6: the flat glass-substrate line disappears
+    under the TiO2/Cu2O(1 min) curve for a stretch around 350-500 nm)
+    legitimately has NO data there -- that's an honest gap, not
+    something to interpolate across -- but it must be a REPORTED gap,
+    not a silent one a human only notices by actually plotting the
+    curve's x-range against the axis it was supposed to cover."""
+    x_values, y_values, col_thicknesses, is_peak = [], [], [], []
+    last_row = None  # tracks curve continuity across columns -- see NEAR_VERTICAL_SPAN_PX below
+    for col in range(curve_mask.shape[1]):
+        rows_lit = np.where(curve_mask[:, col])[0]
+        if len(rows_lit) == 0:
+            continue
+        span = rows_lit.max() - rows_lit.min()
+        if span > NEAR_VERTICAL_SPAN_PX:
+            if last_row is None or abs(rows_lit.min() - last_row) <= abs(rows_lit.max() - last_row):
+                row_centroid = float(rows_lit.min())
+            else:
+                row_centroid = float(rows_lit.max())
+        else:
+            w = weight_interior[rows_lit, col]
+            row_centroid = float(np.average(rows_lit, weights=w)) if w.sum() > 0 else float(rows_lit.mean())
+        last_row = row_centroid
+        pixel_row = row_centroid + top + BORDER_SEARCH_MARGIN
+        pixel_col = col + left + BORDER_SEARCH_MARGIN
+        x_values.append(x_slope * pixel_col + x_intercept)
+        y_values.append(y_slope * pixel_row + y_intercept)
+        col_thicknesses.append(0.0 if span > NEAR_VERTICAL_SPAN_PX else span * abs(y_slope))
+        is_peak.append(span > NEAR_VERTICAL_SPAN_PX)
+
+    n_near_vertical_corrected = int(np.sum(is_peak))
+
+    if not x_values:
+        hint = (f"no pixels matched curve_color={curve_color} within tolerance={color_tolerance} -- "
+                f"try sampling the exact RGB again or widening --color-tolerance" if curve_color is not None
+                else "check DARK_THRESHOLD against the crop image")
+        raise ValueError(f"No curve pixels found after isolating the largest connected component -- {hint}.")
+
+    y_arr = np.array(y_values)
+    is_peak_arr = np.array(is_peak)
+    smooth_window = 9
+    if len(y_arr) >= smooth_window and not is_peak_arr.all():
+        half = smooth_window // 2
+        padded = np.pad(y_arr, half, mode="edge")
+        windows = np.lib.stride_tricks.sliding_window_view(padded, smooth_window)
+        y_median = np.median(windows, axis=1)
+        jitter_std = float(np.std((y_arr - y_median)[~is_peak_arr])) if (~is_peak_arr).any() else 0.0
+        y_arr = np.where(is_peak_arr, y_arr, y_median)
+        y_values = y_arr.tolist()
+    else:
+        jitter_std = 0.0
+
+    error_estimate = float(y_resid + np.mean(col_thicknesses) / 2 + jitter_std)
+    x_span_covered = max(x_values) - min(x_values) if x_values else 0.0
+    x_span_requested = abs(x_last_tick - x_first_tick)
+    coverage_fraction = len(x_values) / curve_mask.shape[1] if curve_mask.shape[1] else 0.0
+
+    return {
+        "x_values": x_values,
+        "y_values": y_values,
+        "digitization_error_estimate": error_estimate,
+        "diagnostics": {
+            "n_curve_points": len(x_values),
+            "n_near_vertical_columns_corrected": n_near_vertical_corrected,
+            "pixel_jitter_std_removed_by_smoothing": jitter_std,
+            "x_range_coverage_fraction": coverage_fraction,
+            "x_span_covered": x_span_covered,
+            "x_span_requested": x_span_requested,
+        },
+    }
+
+
 def digitize(crop_path: str, x_first_tick: float, x_last_tick: float,
              y_first_tick: float, y_last_tick: float,
              curve_color: tuple = None, color_tolerance: float = 45.0,
@@ -415,70 +538,43 @@ def digitize(crop_path: str, x_first_tick: float, x_last_tick: float,
     if curve_color is not None:
         rgb = np.array(Image.open(crop_path).convert("RGB"))
         ink = _color_distance_mask(rgb, curve_color, color_tolerance)
+        # Sub-pixel weight for the centroid below: how close each pixel's
+        # color is to curve_color, not just whether it passed the boolean
+        # tolerance cutoff -- see the weight-array note ahead of the trace
+        # loop for why this matters.
+        diff = rgb.astype(np.float64) - np.array(curve_color, dtype=np.float64)
+        dist = np.sqrt((diff ** 2).sum(axis=-1))
+        weight = np.clip(color_tolerance - dist, 0.0, None)
     else:
         ink = gray < CURVE_DARK_THRESHOLD
+        weight = np.clip(CURVE_DARK_THRESHOLD - gray.astype(np.float64), 0.0, None)
 
     if exclude_boxes:
         for (bx1, by1, bx2, by2) in exclude_boxes:
             ink[by1:by2, bx1:bx2] = False
+            weight[by1:by2, bx1:bx2] = 0.0
 
     interior = ink[top + BORDER_SEARCH_MARGIN : bottom - BORDER_SEARCH_MARGIN,
                     left + BORDER_SEARCH_MARGIN : right - BORDER_SEARCH_MARGIN]
+    weight_interior = weight[top + BORDER_SEARCH_MARGIN : bottom - BORDER_SEARCH_MARGIN,
+                              left + BORDER_SEARCH_MARGIN : right - BORDER_SEARCH_MARGIN]
     curve_mask = _isolate_curve_component(interior)
 
-    x_values, y_values, col_thicknesses = [], [], []
-    last_row = None  # tracks curve continuity across columns -- see NEAR_VERTICAL_SPAN_PX below
-    for col in range(curve_mask.shape[1]):
-        rows_lit = np.where(curve_mask[:, col])[0]
-        if len(rows_lit) == 0:
-            continue
-        span = rows_lit.max() - rows_lit.min()
-        if span > NEAR_VERTICAL_SPAN_PX:
-            # Column-mean would land this point in mid-air between the peak
-            # tip and the baseline (see NEAR_VERTICAL_SPAN_PX's definition
-            # for the real case this was caught on). Pick whichever end of
-            # the run -- top or bottom -- continues from the last traced
-            # point, so a rising edge tracks up to the peak and a falling
-            # edge tracks back down to baseline, instead of arbitrarily
-            # always assuming "peaks point up."
-            if last_row is None or abs(rows_lit.min() - last_row) <= abs(rows_lit.max() - last_row):
-                row_centroid = float(rows_lit.min())
-            else:
-                row_centroid = float(rows_lit.max())
-        else:
-            row_centroid = rows_lit.mean()
-        last_row = row_centroid
-        pixel_row = row_centroid + top + BORDER_SEARCH_MARGIN
-        pixel_col = col + left + BORDER_SEARCH_MARGIN
-        x_values.append(x_slope * pixel_col + x_intercept)
-        y_values.append(y_slope * pixel_row + y_intercept)
-        col_thicknesses.append(0.0 if span > NEAR_VERTICAL_SPAN_PX else span * abs(y_slope))
-
-    if not x_values:
-        hint = (f"no pixels matched curve_color={curve_color} within tolerance={color_tolerance} -- "
-                f"try sampling the exact RGB again or widening --color-tolerance" if curve_color is not None
-                else "check DARK_THRESHOLD against the crop image")
-        raise ValueError(f"No curve pixels found after isolating the largest connected component -- {hint}.")
-
-    # digitization_error_estimate combines two independent sources: how
-    # well the assumed-evenly-spaced ticks actually fit a line
-    # (calibration uncertainty), and how thick the traced line itself is
-    # in data units (a thick/noisy line has real ambiguity in "where
-    # exactly is the curve," a hairline doesn't) -- reported as one
-    # number, but the breakdown is kept in the manifest so it's
-    # auditable, not a black box.
-    error_estimate = float(y_resid + np.mean(col_thicknesses) / 2)
+    trace = trace_curve_columns(curve_mask, weight_interior, top, left, x_slope, x_intercept,
+                                 y_slope, y_intercept, y_resid, x_first_tick, x_last_tick,
+                                 curve_color=curve_color, color_tolerance=color_tolerance)
+    x_values, y_values = trace["x_values"], trace["y_values"]
 
     return {
         "x_values": x_values,
         "y_values": y_values,
-        "digitization_error_estimate": error_estimate,
+        "digitization_error_estimate": trace["digitization_error_estimate"],
         "diagnostics": {
             "n_x_ticks_found": len(x_ticks),
             "n_y_ticks_found": len(y_ticks),
             "x_calibration_residual_std": x_resid,
             "y_calibration_residual_std": y_resid,
-            "n_curve_points": len(x_values),
+            **trace["diagnostics"],
             "border_box_px": {"top": top, "bottom": bottom, "left": left, "right": right},
         },
         "_curve_mask": curve_mask,

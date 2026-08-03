@@ -17,7 +17,7 @@ from pathlib import Path
 sys.path.insert(0, "/sessions/elegant-happy-euler/mnt/CatalysisAI/SpectraScribe-/src")
 from extract_spectrum import (_find_border_box, _isolate_curve_component, _linear_calibration,
                                write_overlay, BORDER_DETECT_THRESHOLD, CURVE_DARK_THRESHOLD,
-                               BORDER_SEARCH_MARGIN, NEAR_VERTICAL_SPAN_PX)
+                               BORDER_SEARCH_MARGIN, NEAR_VERTICAL_SPAN_PX, trace_curve_columns)
 from schema import Modality, SourceType, ExtractionMethod, ReviewStatus, compute_confidence_score, validate_record
 import numpy as np
 from PIL import Image
@@ -43,37 +43,24 @@ def digitize_panel(panel, x_ticks, y_ticks, x_first, x_last, y_first, y_last, x_
     x_slope, x_intercept, x_resid = _linear_calibration(x_ticks, x_first, x_last, x_tick_step)
     y_slope, y_intercept, y_resid = _linear_calibration(y_ticks, y_first, y_last, y_tick_step)
     ink = gray < CURVE_DARK_THRESHOLD
+    weight = np.clip(CURVE_DARK_THRESHOLD - gray.astype(np.float64), 0.0, None)
     interior = ink[top + BORDER_SEARCH_MARGIN: bottom - BORDER_SEARCH_MARGIN,
                     left + BORDER_SEARCH_MARGIN: right - BORDER_SEARCH_MARGIN]
+    weight_interior = weight[top + BORDER_SEARCH_MARGIN: bottom - BORDER_SEARCH_MARGIN,
+                              left + BORDER_SEARCH_MARGIN: right - BORDER_SEARCH_MARGIN]
     curve_mask = _isolate_curve_component(interior)
-    x_values, y_values, thick = [], [], []
-    last_row = None
-    n_corrected = 0
-    for col in range(curve_mask.shape[1]):
-        rows = np.where(curve_mask[:, col])[0]
-        if len(rows) == 0:
-            continue
-        span = rows.max() - rows.min()
-        if span > NEAR_VERTICAL_SPAN_PX:
-            if last_row is None or abs(rows.min() - last_row) <= abs(rows.max() - last_row):
-                pr = float(rows.min())
-            else:
-                pr = float(rows.max())
-            n_corrected += 1
-        else:
-            pr = rows.mean()
-        last_row = pr
-        pr_px = pr + top + BORDER_SEARCH_MARGIN
-        pc_px = col + left + BORDER_SEARCH_MARGIN
-        x_values.append(x_slope * pc_px + x_intercept)
-        y_values.append(y_slope * pr_px + y_intercept)
-        thick.append(0.0 if span > NEAR_VERTICAL_SPAN_PX else span * abs(y_slope))
-    err = float(y_resid + (np.mean(thick) / 2 if thick else 0))
+    # Shared tracer (near-vertical-peak fix, sub-pixel weighted centroid,
+    # median de-noising) -- see trace_curve_columns()'s docstring in
+    # extract_spectrum.py.
+    trace = trace_curve_columns(curve_mask, weight_interior, top, left, x_slope, x_intercept,
+                                 y_slope, y_intercept, y_resid, x_first, x_last)
+    x_values, y_values = trace["x_values"], trace["y_values"]
     diag = {"n_x_ticks_used": len(x_ticks), "n_y_ticks_used": len(y_ticks),
             "x_calibration_residual_std": x_resid, "y_calibration_residual_std": y_resid,
-            "n_curve_points": len(x_values), "n_near_vertical_columns_corrected": n_corrected,
+            **trace["diagnostics"],
             "border_box_px": {"top": top, "bottom": bottom, "left": left, "right": right}}
-    d = {"x_values": x_values, "y_values": y_values, "digitization_error_estimate": err,
+    d = {"x_values": x_values, "y_values": y_values,
+         "digitization_error_estimate": trace["digitization_error_estimate"],
          "diagnostics": diag, "_curve_mask": curve_mask, "_border": (top, bottom, left, right)}
     overlay_path = str(SPECTRA_DIR / f"Figure_S5{panel}_overlay.png")
     write_overlay(path, d, overlay_path)

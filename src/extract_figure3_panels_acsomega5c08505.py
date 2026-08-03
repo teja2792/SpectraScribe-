@@ -35,44 +35,30 @@ def digitize_panel(panel, x_first, x_last, y_first, y_last, y_uncal, n_xticks_us
         x_ticks = x_ticks[:n_xticks_use]
     # Reuse digitize()'s internal logic by calling the pieces directly since we need
     # custom tick-list truncation (panel b) that the CLI path doesn't expose.
-    from extract_spectrum import _isolate_curve_component, BORDER_SEARCH_MARGIN, CURVE_DARK_THRESHOLD, NEAR_VERTICAL_SPAN_PX
+    from extract_spectrum import _isolate_curve_component, BORDER_SEARCH_MARGIN, CURVE_DARK_THRESHOLD, trace_curve_columns
     x_slope, x_intercept, x_resid = _linear_calibration(x_ticks, x_first, x_last, x_tick_step)
     if y_uncal:
         y_slope, y_intercept, y_resid = _linear_calibration([top, bottom], y_first, y_last)
     else:
         y_slope, y_intercept, y_resid = _linear_calibration(y_ticks, y_first, y_last)
     ink = gray < CURVE_DARK_THRESHOLD
+    weight = np.clip(CURVE_DARK_THRESHOLD - gray.astype(np.float64), 0.0, None)
     interior = ink[top+BORDER_SEARCH_MARGIN:bottom-BORDER_SEARCH_MARGIN, left+BORDER_SEARCH_MARGIN:right-BORDER_SEARCH_MARGIN]
+    weight_interior = weight[top+BORDER_SEARCH_MARGIN:bottom-BORDER_SEARCH_MARGIN, left+BORDER_SEARCH_MARGIN:right-BORDER_SEARCH_MARGIN]
     curve_mask = _isolate_curve_component(interior)
-    x_values, y_values, thick = [], [], []
-    last_row = None  # same near-vertical-column fix as extract_spectrum.py's digitize() --
-                      # this script duplicates the trace loop (needed custom tick-list
-                      # truncation for panel b) so the fix has to be duplicated too, not
-                      # inherited automatically. See NEAR_VERTICAL_SPAN_PX's docstring in
-                      # extract_spectrum.py for the real case (Figure S4) that found this.
-    for col in range(curve_mask.shape[1]):
-        rows = np.where(curve_mask[:, col])[0]
-        if len(rows) == 0:
-            continue
-        span = rows.max() - rows.min()
-        if span > NEAR_VERTICAL_SPAN_PX:
-            if last_row is None or abs(rows.min() - last_row) <= abs(rows.max() - last_row):
-                pr = float(rows.min())
-            else:
-                pr = float(rows.max())
-        else:
-            pr = rows.mean()
-        last_row = pr
-        pr = pr + top + BORDER_SEARCH_MARGIN
-        pc = col + left + BORDER_SEARCH_MARGIN
-        x_values.append(x_slope*pc + x_intercept)
-        y_values.append(y_slope*pr + y_intercept)
-        thick.append(0.0 if span > NEAR_VERTICAL_SPAN_PX else span*abs(y_slope))
-    err = float(y_resid + (np.mean(thick)/2 if thick else 0))
+    # Shared tracer (near-vertical-peak fix, sub-pixel weighted centroid,
+    # median de-noising) -- see trace_curve_columns()'s docstring in
+    # extract_spectrum.py. Used to be a duplicated loop here that only got
+    # the near-vertical fix, not the later weighting/smoothing fixes, until
+    # those had to be re-added a second time; now there's one copy to fix.
+    trace = trace_curve_columns(curve_mask, weight_interior, top, left, x_slope, x_intercept,
+                                 y_slope, y_intercept, y_resid, x_first, x_last)
+    x_values, y_values = trace["x_values"], trace["y_values"]
     diag = {"n_x_ticks_found": len(x_ticks), "n_y_ticks_found": len(y_ticks),
             "x_calibration_residual_std": x_resid, "y_calibration_residual_std": y_resid,
-            "n_curve_points": len(x_values), "border_box_px": {"top": top, "bottom": bottom, "left": left, "right": right}}
-    d = {"x_values": x_values, "y_values": y_values, "digitization_error_estimate": err,
+            **trace["diagnostics"], "border_box_px": {"top": top, "bottom": bottom, "left": left, "right": right}}
+    d = {"x_values": x_values, "y_values": y_values,
+         "digitization_error_estimate": trace["digitization_error_estimate"],
          "diagnostics": diag, "_curve_mask": curve_mask, "_border": (top, bottom, left, right)}
     overlay_path = str(SPECTRA_DIR / f"Figure_3{panel}_overlay.png")
     write_overlay(path, d, overlay_path)

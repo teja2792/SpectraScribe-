@@ -53,13 +53,31 @@ y_slope, y_intercept, y_resid = _linear_calibration(y_ticks, 100, 10, tick_step=
 
 rgb = np.array(Image.open(CROP_PATH).convert("RGB"))
 blue_mask = _color_distance_mask(rgb, (0, 0, 255), 60)
+# Sub-pixel weight (how close each pixel actually is to pure blue, not just
+# whether it passed the boolean tolerance) -- same fix as
+# trace_curve_columns() in extract_spectrum.py, applied here by hand since
+# this script's two-runs-per-column solid/dashed split doesn't fit that
+# function's one-row-set-per-column shape. See that function's docstring
+# for why a plain mean/midpoint jitters by a whole pixel on a thin line.
+_diff = rgb.astype(np.float64) - np.array((0, 0, 255), dtype=np.float64)
+blue_weight = np.clip(60 - np.sqrt((_diff ** 2).sum(axis=-1)), 0.0, None)
 bx1, by1, bx2, by2 = LEGEND_BOX
 blue_mask[by1:by2, bx1:bx2] = False
+blue_weight[by1:by2, bx1:bx2] = 0.0
 interior = blue_mask[top + BORDER_SEARCH_MARGIN: bottom - BORDER_SEARCH_MARGIN,
                       left + BORDER_SEARCH_MARGIN: right - BORDER_SEARCH_MARGIN]
+weight_interior = blue_weight[top + BORDER_SEARCH_MARGIN: bottom - BORDER_SEARCH_MARGIN,
+                               left + BORDER_SEARCH_MARGIN: right - BORDER_SEARCH_MARGIN]
 
-solid_x, solid_y, solid_thick = [], [], []
-dash_x, dash_y, dash_thick = [], [], []
+
+def _weighted_centroid(lo, hi, col, w_interior):
+    rows = np.arange(lo, hi + 1)
+    w = w_interior[rows, col]
+    return float(np.average(rows, weights=w)) if w.sum() > 0 else (lo + hi) / 2.0
+
+
+solid_x, solid_y, solid_thick, solid_is_peak = [], [], [], []
+dash_x, dash_y, dash_thick, dash_is_peak = [], [], [], []
 last_solid_row, last_dash_row = None, None
 n_solid_corrected, n_dash_corrected = 0, 0
 
@@ -79,32 +97,57 @@ for col in range(interior.shape[1]):
     # solid = bottommost run (always present -- solid line is continuous)
     s_lo, s_hi = runs[-1]
     span = s_hi - s_lo
-    if span > NEAR_VERTICAL_SPAN_PX:
+    is_peak = span > NEAR_VERTICAL_SPAN_PX
+    if is_peak:
         pr = float(s_lo) if (last_solid_row is None or abs(s_lo - last_solid_row) <= abs(s_hi - last_solid_row)) else float(s_hi)
         n_solid_corrected += 1
     else:
-        pr = (s_lo + s_hi) / 2.0
+        pr = _weighted_centroid(s_lo, s_hi, col, weight_interior)
     last_solid_row = pr
     pr_px = pr + top + BORDER_SEARCH_MARGIN
     pc_px = col + left + BORDER_SEARCH_MARGIN
     solid_x.append(x_slope * pc_px + x_intercept)
     solid_y.append(y_slope * pr_px + y_intercept)
-    solid_thick.append(0.0 if span > NEAR_VERTICAL_SPAN_PX else span * abs(y_slope))
+    solid_thick.append(0.0 if is_peak else span * abs(y_slope))
+    solid_is_peak.append(is_peak)
 
     # dashed = topmost run, only when a genuinely separate second run exists
     if len(runs) >= 2:
         d_lo, d_hi = runs[0]
         dspan = d_hi - d_lo
-        if dspan > NEAR_VERTICAL_SPAN_PX:
+        d_is_peak = dspan > NEAR_VERTICAL_SPAN_PX
+        if d_is_peak:
             pr = float(d_lo) if (last_dash_row is None or abs(d_lo - last_dash_row) <= abs(d_hi - last_dash_row)) else float(d_hi)
             n_dash_corrected += 1
         else:
-            pr = (d_lo + d_hi) / 2.0
+            pr = _weighted_centroid(d_lo, d_hi, col, weight_interior)
         last_dash_row = pr
         pr_px = pr + top + BORDER_SEARCH_MARGIN
         dash_x.append(x_slope * pc_px + x_intercept)
         dash_y.append(y_slope * pr_px + y_intercept)
-        dash_thick.append(0.0 if dspan > NEAR_VERTICAL_SPAN_PX else dspan * abs(y_slope))
+        dash_thick.append(0.0 if d_is_peak else dspan * abs(y_slope))
+        dash_is_peak.append(d_is_peak)
+
+
+def _smooth(y_values, is_peak_list, window=9):
+    """Same light median de-noising as trace_curve_columns() -- see that
+    function's docstring in extract_spectrum.py for why a small rolling
+    median (not mean) is the right tool here, applied only to non-peak
+    points. Returns (smoothed_y, jitter_std)."""
+    y_arr = np.array(y_values)
+    is_peak_arr = np.array(is_peak_list)
+    if len(y_arr) < window or is_peak_arr.all():
+        return y_values, 0.0
+    half = window // 2
+    padded = np.pad(y_arr, half, mode="edge")
+    windows = np.lib.stride_tricks.sliding_window_view(padded, window)
+    y_median = np.median(windows, axis=1)
+    jitter_std = float(np.std((y_arr - y_median)[~is_peak_arr])) if (~is_peak_arr).any() else 0.0
+    return np.where(is_peak_arr, y_arr, y_median).tolist(), jitter_std
+
+
+solid_y, solid_jitter_std = _smooth(solid_y, solid_is_peak)
+dash_y, dash_jitter_std = _smooth(dash_y, dash_is_peak)
 
 # --- verification overlay: green=solid, magenta=dashed, drawn on the real crop ---
 overlay_img = Image.open(CROP_PATH).convert("RGB")
@@ -125,10 +168,10 @@ print(f"dashed: {len(dash_x)} pts (n_near_vertical_corrected={n_dash_corrected})
       f"x=[{min(dash_x):.1f},{max(dash_x):.1f}], y=[{min(dash_y):.2f},{max(dash_y):.2f}]")
 
 
-def build_record(curve_label, xs_data, ys_data, thick, n_corrected, material_description,
+def build_record(curve_label, xs_data, ys_data, thick, n_corrected, jitter_std, material_description,
                   measurement_purpose, baseline_material, notes_extra):
     safe_label = f"Figure_S13_{curve_label}"
-    err = float(y_resid + (np.mean(thick) / 2 if thick else 0))
+    err = float(y_resid + (np.mean(thick) / 2 if thick else 0) + jitter_std)
     record = {
         "record_id": f"acsomega_5c08505_{safe_label.lower()}",
         "material_formula": "TiO2/Cu2O",
@@ -178,7 +221,7 @@ def build_record(curve_label, xs_data, ys_data, thick, n_corrected, material_des
 
 
 build_record(
-    "tio2_cu2o_60min", solid_x, solid_y, solid_thick, n_solid_corrected,
+    "tio2_cu2o_60min", solid_x, solid_y, solid_thick, n_solid_corrected, solid_jitter_std,
     "TiO2/Cu2O composite coating on glass, 60 min Cu2O deposition reaction time, BEFORE immersion in "
     "methyl orange dye solution",
     "UV-Vis transmittance of the as-prepared TiO2/Cu2O composite coating, the 'before' reference for the "
@@ -189,7 +232,7 @@ build_record(
 )
 
 build_record(
-    "tio2_cu2o_60min_after_4h_dye_immersion", dash_x, dash_y, dash_thick, n_dash_corrected,
+    "tio2_cu2o_60min_after_4h_dye_immersion", dash_x, dash_y, dash_thick, n_dash_corrected, dash_jitter_std,
     "TiO2/Cu2O composite coating on glass, 60 min Cu2O deposition reaction time, AFTER 4h immersion in "
     "methyl orange dye solution (same physical sample as the 'before' curve in this same figure)",
     "UV-Vis transmittance of the same TiO2/Cu2O composite coating after 4h immersion in methyl orange dye "
