@@ -86,6 +86,16 @@ class Modality(str, Enum):
     FTIR = "FTIR"
     PL = "PL"
     XRD = "XRD"
+    EDX = "EDX"  # energy-dispersive X-ray spectroscopy (characteristic X-ray energy vs counts) --
+                 # added when acsomega_2c04226's Figure 2b turned out to be EDX elemental analysis,
+                 # a real, common characterization technique this enum had no value for. Physically
+                 # distinct from XPS (EDX excites/measures characteristic X-rays for bulk elemental
+                 # composition; XPS measures photoelectron binding energy for surface oxidation
+                 # state/bonding) despite superficially similar-looking spectra (both: energy on x,
+                 # counts on y) -- mislabeling one as the other would corrupt any downstream query or
+                 # analysis that groups/filters records by modality, so a new value was added rather
+                 # than reusing XPS as a "close enough" stand-in. Not claimed SpectraVault-compatible
+                 # for this value (same documented deviation as UV_VIS_TAUC above).
 
 
 class SourceType(str, Enum):
